@@ -84,13 +84,40 @@ export interface TacticalSimulationInfo {
   overallVerdict: string;
 }
 
+export interface Phase2Output {
+  batterFormScore: number;
+  batterFormTrend: "rising" | "falling" | "consistent";
+  bowlerThreatScore: number;
+  bowlerThreatTrend: "improving" | "expensive" | "consistent";
+  headToHead: {
+    dominance: "bowler_dominant" | "batter_dominant" | "contested";
+    dominanceStrength: number;
+    summary: string;
+  };
+  venue: {
+    venueAdjustment: number;
+    venueNote: string;
+  };
+  phaseAnalysis: {
+    powerplayRisk: "high" | "medium" | "low";
+    middleOversRisk: "high" | "medium" | "low";
+    deathOversRisk: "high" | "medium" | "low";
+    bestAttackWindow: string;
+  };
+  highlights: [string, string, string];
+  overallRisk: "High Risk" | "Contested" | "Batter Favored";
+  riskScore: number;
+  confidence: "high" | "medium" | "low";
+}
+
 export interface MatchupAnalysis {
   isMock: boolean;
   batter: BatterInfo;
   bowler: BowlerInfo;
   headToHead: H2HInfo;
   venue: VenueInfo;
-  tacticalSimulation: TacticalSimulationInfo;
+  tacticalSimulation?: TacticalSimulationInfo; // Legacy
+  phase2?: Phase2Output;
   fetchedAt: string;
 }
 

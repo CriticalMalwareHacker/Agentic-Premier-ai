@@ -25,6 +25,9 @@ import { PipelineStep } from "./components/PipelineStep";
 import { ProgressBar } from "./components/ProgressBar";
 import { PlayerAvatar } from "./components/PlayerAvatar";
 import { RoleBadge } from "./components/RoleBadge";
+import { StatBox } from "./components/StatsGrid";
+import { VerdictBadge } from "./components/VerdictBadge";
+import { FormSparkbar } from "./components/FormSparkbar";
 import { MatchupAnalysis, PipelineStepState, StepStatus } from "./types";
 
 const MATCHUP_PRESETS = [
@@ -249,13 +252,34 @@ export default function App() {
           dewFactor: true,
           pitchDescription: `Local pitches at ${venueName} exhibit typical characteristics. Play favors precision placement over aggressive slogs due to slightly uneven bounce.`
         },
-        tacticalSimulation: {
-          winnerMatchupChance: 52,
-          strategicKeyBatter: `Target the slower deliveries early, using soft hands to play into open pockets behind square leg.`,
-          strategicKeyBowler: `Vary length between heavy back-of-of-a-length deliveries and occasional pin-point low full tosses.`,
-          powerplayTactics: `High intensity swing contest. Keep slips ready while setting standard containing lines outside off.`,
-          deathOversTactics: `Expect heavy aggressive hitting. Use wide slower hooks or change momentum frequently.`,
-          overallVerdict: `A legendary grid contest. High dew factors in local conditions will benefit the side batting second, making chase target projections extremely reliable.`
+        phase2: {
+          batterFormScore: 82,
+          batterFormTrend: "rising",
+          bowlerThreatScore: 68,
+          bowlerThreatTrend: "consistent",
+          headToHead: {
+            dominance: "batter_dominant",
+            dominanceStrength: 75,
+            summary: "Batter aggressively scores when facing this bowler.",
+          },
+          venue: {
+            venueAdjustment: 15,
+            venueNote: "High runs expected early in the innings.",
+          },
+          phaseAnalysis: {
+            powerplayRisk: "medium",
+            middleOversRisk: "high",
+            deathOversRisk: "low",
+            bestAttackWindow: "Overs 7-12",
+          },
+          highlights: [
+            "Batter heavily attacks short pitch deliveries.",
+            "Bowler relies on slow cutters on this sticky wicket.",
+            "Spinners hold an extreme advantage in middle overs.",
+          ],
+          overallRisk: "Contested",
+          riskScore: 48,
+          confidence: "medium",
         },
         fetchedAt: new Date().toISOString()
       };
@@ -519,91 +543,88 @@ export default function App() {
               {activeTab === "tactical" && (
                 <div id="tactical-tab-content" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   
-                  {/* Winning Chance circular metric card */}
+                  {/* Phase 2 Overall Risk & Stats */}
                   <div className="lg:col-span-1 p-6 bg-[#0E0E10] border border-white/10 rounded-xl flex flex-col justify-between space-y-6">
-                    <div>
-                      <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Matchup Verdict probability</span>
-                      <h4 className="text-sm font-semibold text-slate-200 mt-1">Batter Edge Projection</h4>
-                    </div>
-
-                    <div className="flex flex-col items-center justify-center py-4 relative">
-                      {/* Meter Ring mockup */}
-                      <div className="w-32 h-32 rounded-full border-4 border-white/5 flex items-center justify-center relative shadow-[inset_0_0_15px_rgba(255,255,255,0.02)]">
-                        <div 
-                          className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-400 animate-pulse"
-                          style={{ transform: `rotate(${((data.tacticalSimulation?.winnerMatchupChance ?? 50) / 100) * 360}deg)` }}
-                        ></div>
-                        <div className="text-center">
-                          <span className="text-4xl font-serif text-white block">
-                            {data.tacticalSimulation?.winnerMatchupChance ?? 50}%
-                          </span>
-                          <span className="text-[9px] text-[#A3E635] uppercase font-mono tracking-widest mt-1 block">
-                            Batter Favor
-                          </span>
-                        </div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono block mb-1">Matchup Verdict</span>
+                        <VerdictBadge verdict={data.phase2?.overallRisk ?? "Contested"} />
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono block">Risk Score</span>
+                        <span className="text-2xl font-mono text-white">{data.phase2?.riskScore ?? 50}</span>
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-400 font-mono text-center leading-relaxed">
-                      Calculated on-the-fly comparing batter scoring rate vs bowler release economy adjusted for venue conditions.
+                    <p className="text-xs text-slate-400 font-mono leading-relaxed">
+                      Confidence Level: <span className="uppercase text-emerald-400">{data.phase2?.confidence ?? "N/A"}</span>
                     </p>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <StatBox value={`${data.phase2?.batterFormScore ?? 0}`} label="BATTER FORM" highlight />
+                      <StatBox value={`${data.phase2?.bowlerThreatScore ?? 0}`} label="BOWLER THREAT" />
+                    </div>
                   </div>
 
                   {/* Operational instructions */}
                   <div className="lg:col-span-2 space-y-4">
                     
-                    {/* Verdict block */}
-                    <div className="p-6 bg-[#0E0E10] border border-white/10 rounded-xl">
-                      <h3 className="text-xs text-white/30 uppercase tracking-wider font-mono mb-2 flex items-center gap-2">
-                        <Flame size={12} className="text-[#ffb4ab]" />
-                        Tactical Combat Analysis
-                      </h3>
-                      <p className="text-sm md:text-base text-slate-200 leading-relaxed font-sans font-light">
-                        {data.tacticalSimulation?.overallVerdict}
+                    {/* H2H and Venue block */}
+                    <div className="p-6 bg-[#0E0E10] border border-white/10 rounded-xl space-y-4">
+                      <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                        <h3 className="text-xs text-white/30 uppercase tracking-wider font-mono flex items-center gap-2">
+                          <Flame size={12} className="text-[#ffb4ab]" />
+                          Head-to-Head Dominance
+                        </h3>
+                        <span className="text-emerald-400 font-mono text-xs uppercase">{data.phase2?.headToHead.dominance.replace("_", " ")}</span>
+                      </div>
+                      <p className="text-sm text-slate-200 leading-relaxed font-sans font-light">
+                        {data.phase2?.headToHead.summary}
                       </p>
-                    </div>
-
-                    {/* Left/Right Tactics Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       
-                      {/* Batter Plan */}
-                      <div className="p-5 bg-[#0E0E10] border border-white/10 rounded-xl space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded bg-emerald-400"></div>
-                          <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-mono">Batter Blueprint</span>
-                        </div>
-                        <h4 className="text-xs font-semibold text-white">{data.batter.name} strategy:</h4>
-                        <p className="text-xs text-slate-300 leading-relaxed">
-                          {data.tacticalSimulation?.strategicKeyBatter}
-                        </p>
+                      <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+                        <span className="text-[9px] font-mono uppercase text-white/30 block mb-1">Venue Adjustment ({data.phase2?.venue.venueAdjustment > 0 ? "+" : ""}{data.phase2?.venue.venueAdjustment})</span>
+                        <p className="text-xs text-slate-300 leading-relaxed">{data.phase2?.venue.venueNote}</p>
                       </div>
-
-                      {/* Bowler Plan */}
-                      <div className="p-5 bg-[#0E0E10] border border-white/10 rounded-xl space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded bg-rose-400"></div>
-                          <span className="text-[10px] text-rose-400 uppercase tracking-wider font-mono">Bowler Tactics</span>
-                        </div>
-                        <h4 className="text-xs font-semibold text-white">{data.bowler.name} strategy:</h4>
-                        <p className="text-xs text-slate-300 leading-relaxed">
-                          {data.tacticalSimulation?.strategicKeyBowler}
-                        </p>
-                      </div>
-
                     </div>
 
-                    {/* Play overs tactics */}
+                    {/* Left/Right Tactics Grid / Phase Risk */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                        <span className="text-[9px] font-mono uppercase text-white/30 block mb-1">Powerplay Overs Plan</span>
-                        <p className="text-xs text-slate-300 leading-relaxed">{data.tacticalSimulation?.powerplayTactics || "Maintain disciplined outside off delivery channels to seek early movement."}</p>
+                      <div className="p-5 bg-[#0E0E10] border border-white/10 rounded-xl space-y-3">
+                        <h3 className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Phase Risks</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-xs font-mono">
+                            <span className="text-white/60">Powerplay</span>
+                            <span className={data.phase2?.phaseAnalysis.powerplayRisk === "high" ? "text-rose-400" : "text-emerald-400"}>{data.phase2?.phaseAnalysis.powerplayRisk.toUpperCase()}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs font-mono">
+                            <span className="text-white/60">Middle Overs</span>
+                            <span className={data.phase2?.phaseAnalysis.middleOversRisk === "high" ? "text-rose-400" : "text-emerald-400"}>{data.phase2?.phaseAnalysis.middleOversRisk.toUpperCase()}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs font-mono">
+                            <span className="text-white/60">Death Overs</span>
+                            <span className={data.phase2?.phaseAnalysis.deathOversRisk === "high" ? "text-rose-400" : "text-emerald-400"}>{data.phase2?.phaseAnalysis.deathOversRisk.toUpperCase()}</span>
+                          </div>
+                        </div>
+                        <div className="pt-3 border-t border-white/5">
+                          <span className="text-[9px] font-mono uppercase text-emerald-400 block mb-1">Best Attack Window</span>
+                          <span className="text-sm font-sans text-white block">{data.phase2?.phaseAnalysis.bestAttackWindow}</span>
+                        </div>
                       </div>
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                        <span className="text-[9px] font-mono uppercase text-white/30 block mb-1">Death/Slog Overs Plan</span>
-                        <p className="text-xs text-slate-300 leading-relaxed">{data.tacticalSimulation?.deathOversTactics || "Mix up wide slow deliveries with toe-crushing stump yorkers."}</p>
+
+                      {/* Highlights */}
+                      <div className="p-5 bg-[#0E0E10] border border-white/10 rounded-xl space-y-3">
+                        <h3 className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Key Highlights</h3>
+                        <ul className="space-y-2.5 text-xs text-slate-300 leading-relaxed font-sans">
+                          {data.phase2?.highlights.map((hlt: string, idx: number) => (
+                            <li key={idx} className="flex gap-2">
+                              <span className="text-emerald-400 mt-1 shrink-0">•</span>
+                              <span>{hlt}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     </div>
-
                   </div>
                 </div>
               )}
@@ -622,7 +643,14 @@ export default function App() {
                           <span className="text-[10px] text-slate-400 font-mono">{data.batter.country}</span>
                         </div>
                       </div>
-                      <RoleBadge role={data.batter.role} />
+                      <div className="flex items-center gap-4">
+                        {data.batter.recentForm && data.batter.recentForm.length > 0 && (
+                          <div className="hidden sm:block" title="Recent Runs Trend">
+                            <FormSparkbar values={data.batter.recentForm.map(r => r.runs).reverse()} />
+                          </div>
+                        )}
+                        <RoleBadge role={data.batter.role} />
+                      </div>
                     </div>
 
                     <h5 className="text-[10px] text-white/30 uppercase tracking-wider font-mono font-medium">Last 5 T20 Matches:</h5>
@@ -656,7 +684,14 @@ export default function App() {
                           <span className="text-[10px] text-slate-400 font-mono">{data.bowler.country}</span>
                         </div>
                       </div>
-                      <RoleBadge role={data.bowler.role} />
+                      <div className="flex items-center gap-4">
+                        {data.bowler.recentForm && data.bowler.recentForm.length > 0 && (
+                          <div className="hidden sm:block" title="Recent Wickets Trend">
+                             <FormSparkbar values={data.bowler.recentForm.map(r => r.wickets).reverse()} />
+                          </div>
+                        )}
+                        <RoleBadge role={data.bowler.role} />
+                      </div>
                     </div>
 
                     <h5 className="text-[10px] text-white/30 uppercase tracking-wider font-mono font-medium">Last 5 T20 Bowling Spells:</h5>

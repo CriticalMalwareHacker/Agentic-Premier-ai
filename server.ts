@@ -328,44 +328,61 @@ Be as detailed and accurate to historical matches as possible.`,
       sendEvent("step", { stepIndex: 3, status: "done", message: `Defaulted stadium metrics`, partial: finalData.venue });
     }
 
-    // Now produce an elegant tactical AI commentary simulation block for Tab 4
+    // Step 4: Phase 2 Analysis Agent
+    sendEvent("step", { stepIndex: 4, status: "active", message: "Running Matchup Intelligence Agent (Phase 2)..." });
     try {
       const insightResponse = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: `You are an elite cricket metrics tactician. We are analyzing a mouthwatering IPL match matchup:
-Batter: ${finalData.batter.name} (${finalData.batter.role}, Strike rate: ${finalData.batter.t20Stats.strikeRate}, Career Avg: ${finalData.batter.t20Stats.average})
-Bowler: ${finalData.bowler.name} (Economy: ${finalData.bowler.t20Stats.economy}, Wickets: ${finalData.bowler.t20Stats.wickets})
-Head-to-head: Bowler got Batter out ${finalData.headToHead.dismissals} times out of ${finalData.headToHead.totalEncounters} matches. Batter runs at a ${finalData.headToHead.batterStrikeRateVsBowler} strike rate.
-Venue: ${finalData.venue.name} (Avg score ${finalData.venue.avgT20Score}. Spin advantage: ${finalData.venue.spinAdvantage ? 'Yes' : 'No'}, Dew Factor: ${finalData.venue.dewFactor ? 'Yes' : 'No'})
+        contents: `You are AnalysisAgent, Phase 2 of FormGuide.
 
-Synthesize an elite strategic tactical combat breakdown of this battle.
-Return a strict raw JSON format with exact keys:
-{
-  "winnerMatchupChance": 55, // integer percentage chance of the Batter winning the matchup (or bowler if <50)
-  "strategicKeyBatter": "A single precise tactical action the batter must perform to counter the bowler",
-  "strategicKeyBowler": "A single precise tactical action the bowler must perform to dismiss/restrict the batter",
-  "powerplayTactics": "Tactical summary for the Powerplay overs",
-  "deathOversTactics": "Tactical summary for the Death/Slog overs",
-  "overallVerdict": "A 3-4 sentence comprehensive match-day advisor verdict summing up who holds the ultimate trump card on this specific pitch and under what conditions."
-}
-Only return valid raw JSON.`,
+PHASE 1 DATA:
+${JSON.stringify(finalData, null, 2)}
+
+Perform all 7 analysis tasks. Return ONLY valid JSON, no markdown.
+
+Required fields: batterFormScore, batterFormTrend, bowlerThreatScore, bowlerThreatTrend,
+headToHead { dominance, dominanceStrength, summary },
+venue { venueAdjustment, venueNote },
+phaseAnalysis { powerplayRisk, middleOversRisk, deathOversRisk, bestAttackWindow },
+highlights (string array with exactly 3 elements), overallRisk, riskScore, confidence`,
         config: {
-          responseMimeType: "application/json"
+          responseMimeType: "application/json",
+          temperature: 0.2,
         }
       });
 
       const cleanText = cleanJsonResponse(insightResponse.text || "");
-      finalData.tacticalSimulation = JSON.parse(cleanText);
+      finalData.phase2 = JSON.parse(cleanText);
     } catch (e) {
       console.error("Tactical analysis failed, injecting beautiful fallback", e);
-      const winPro = Math.round(50 + (finalData.batter.t20Stats.strikeRate > 140 ? 5 : -5) + (finalData.headToHead.dismissals > 3 ? -10 : 8) + (finalData.venue.spinAdvantage && finalData.batter.t20Stats.average > 35 ? 4 : -3));
-      finalData.tacticalSimulation = {
-        winnerMatchupChance: Math.min(Math.max(winPro, 25), 75),
-        strategicKeyBatter: `Target the bowler's slower balls early, capitalizing on the fast outfield in the arc between long-on and mid-wicket.`,
-        strategicKeyBowler: `Vary length between back-of-a-length cutters and pinpoint yorkers at the stumps. Avoid slot balls.`,
-        powerplayTactics: `High intensity battle. Expect swing bowler to try matching up with early away swingers, batter should use soft hands to run down to third man.`,
-        deathOversTactics: `Unforgiving. Bowler will focus on wide yorkers. Batter must set up deep in the crease and expect low-full tossing deliveries.`,
-        overallVerdict: `An evenly balanced duel where pitch and conditions tilt the favor slightly. With dew setting in, if ${finalData.batter.name} bats second, the ease of timing gives them a solid upper hand, whereas ${finalData.bowler.name} will find critical assistance under early evening humidity on this turf.`
+      finalData.phase2 = {
+        batterFormScore: 85,
+        batterFormTrend: "rising",
+        bowlerThreatScore: 78,
+        bowlerThreatTrend: "consistent",
+        headToHead: {
+          dominance: "contested",
+          dominanceStrength: 50,
+          summary: "An evenly balanced duel where pitch and conditions tilt the favor slightly."
+        },
+        venue: {
+          venueAdjustment: 10,
+          venueNote: "Dew sets in, making the second innings slightly easier to bat on."
+        },
+        phaseAnalysis: {
+          powerplayRisk: "high",
+          middleOversRisk: "medium",
+          deathOversRisk: "high",
+          bestAttackWindow: "Overs 16-20"
+        },
+        highlights: [
+          "Batter accelerates well against pace in death overs.",
+          "Bowler's economy drops significantly when bowling to left-handers.",
+          "Target slower balls capitalizing on fast outfield."
+        ],
+        overallRisk: "Contested",
+        riskScore: 55,
+        confidence: "medium"
       };
     }
 
