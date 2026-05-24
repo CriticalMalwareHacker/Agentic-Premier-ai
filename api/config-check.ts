@@ -1,4 +1,4 @@
-import { getCricketDataKey, getFirstEnvValue } from "./_shared";
+import { getCricketDataKey, getFirstEnvValue } from "./_shared.js";
 
 export default function handler(_req: any, res: any) {
   const geminiApiKeyPresent = !!getFirstEnvValue(["GEMINI_API_KEY"], ["MY_GEMINI_API_KEY"]);

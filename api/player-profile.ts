@@ -1,4 +1,4 @@
-import { resolveProfile } from "./_shared";
+import { resolveProfile } from "./_shared.js";
 
 export default async function handler(req: any, res: any) {
   const name = String(req.query.name || "").trim();

@@ -4,7 +4,7 @@ import {
   GEMINI_MODEL,
   getGeminiClient,
   getSimulationData,
-} from "./_shared";
+} from "./_shared.js";
 
 function sendEvent(res: any, event: string, data: unknown) {
   res.write(`event: ${event}\n`);
