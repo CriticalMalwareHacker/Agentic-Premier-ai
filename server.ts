@@ -184,32 +184,13 @@ app.get("/api/analyze-stream", async (req, res) => {
       fetchedAt: new Date().toISOString()
     };
 
-    const cricApiKey = process.env.CRICAPI_KEY;
-    async function fetchCricApiRaw(name: string) {
-      if (!cricApiKey) return null;
-      try {
-        const searchRes = await fetch(`https://api.cricapi.com/v1/players?apikey=${cricApiKey}&search=${encodeURIComponent(name)}`);
-        const searchData = await searchRes.json();
-        const player = searchData.data?.[0];
-        if (!player) return null;
-        const infoRes = await fetch(`https://api.cricapi.com/v1/players_info?apikey=${cricApiKey}&id=${player.id}`);
-        const infoData = await infoRes.json();
-        return infoData.data;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    // Step 0: Batter stats & recent form via CricAPI + Gemini
+    // Step 0: Batter stats & recent form via Gemini Search
     sendEvent("step", { stepIndex: 0, status: "active", message: `Fetching recent form and T20/IPL stats for ${batter}` });
     try {
-      const cricData = await fetchCricApiRaw(batter);
-      const cricContext = cricData ? `Raw CricAPI Data for batter:\n${JSON.stringify(cricData)}\n\n` : `(No CricAPI data found, use search or estimation)\n`;
-
       const batterResponse = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: `${cricContext}Search IPL 2026, IPL 2025 or international T20 stats and recent form for the following batter: ${batter}.
-Return a strict JSON block structure representing their information based on the provided raw data (if available) and search. Return ONLY valid raw JSON with exact keys:
+        model: "gemini-1.5-flash",
+        contents: `Search IPL 2026, IPL 2025 or international T20 stats and recent form for the following batter: ${batter}.
+Return a strict JSON block structure representing their information based on the search. Return ONLY valid raw JSON with exact keys:
 {
   "name": "${batter}",
   "id": "bat_${Date.now()}",
@@ -232,8 +213,7 @@ Return a strict JSON block structure representing their information based on the
 }
 If accurate career data is not found, provide highly realistic estimated statistics. Make sure to populate recentForm with 4-5 items.`,
         config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json"
+          tools: [{ googleSearch: {} }]
         }
       });
 
@@ -247,16 +227,13 @@ If accurate career data is not found, provide highly realistic estimated statist
       sendEvent("step", { stepIndex: 0, status: "done", message: `Defaulted statistics for ${batter}`, partial: finalData.batter });
     }
 
-    // Step 1: Bowler stats & economy via CricAPI + Gemini
+    // Step 1: Bowler stats & economy via Gemini Search
     sendEvent("step", { stepIndex: 1, status: "active", message: `Fetching recent econ rate and T20/IPL stats for ${bowler}` });
     try {
-      const cricData = await fetchCricApiRaw(bowler);
-      const cricContext = cricData ? `Raw CricAPI Data for bowler:\n${JSON.stringify(cricData)}\n\n` : `(No CricAPI data found, use search or estimation)\n`;
-
       const bowlerResponse = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: `${cricContext}Search IPL 2026, IPL 2025 or international T20 stats and recent bowling form for the following bowler: ${bowler}.
-Return a strict JSON block structure representing their information based on the provided raw data (if available) and search. Return ONLY valid raw JSON with exact keys:
+        model: "gemini-1.5-flash",
+        contents: `Search IPL 2026, IPL 2025 or international T20 stats and recent bowling form for the following bowler: ${bowler}.
+Return a strict JSON block structure representing their information based on the search. Return ONLY valid raw JSON with exact keys:
 {
   "name": "${bowler}",
   "id": "bowl_${Date.now()}",
@@ -276,8 +253,7 @@ Return a strict JSON block structure representing their information based on the
 }
 If accurate career data is not found, provide highly realistic estimated statistics. Make sure to populate recentForm with 4-5 items.`,
         config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json"
+          tools: [{ googleSearch: {} }]
         }
       });
 
@@ -294,7 +270,7 @@ If accurate career data is not found, provide highly realistic estimated statist
     sendEvent("step", { stepIndex: 2, status: "active", message: `Searching historical IPL and T20 matches of ${batter} vs ${bowler}` });
     try {
       const h2hResponse = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-1.5-flash",
         contents: `Show exact head to head stats of cricket bowler ${bowler} bowling to batter ${batter} in IPL or T20 matching records.
 Return a strict JSON block structure. Return ONLY valid raw JSON with exact keys:
 {
@@ -305,8 +281,7 @@ Return a strict JSON block structure. Return ONLY valid raw JSON with exact keys
 }
 Provide highly realistic estimated data if direct numbers are hard to query.`,
         config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json"
+          tools: [{ googleSearch: {} }]
         }
       });
 
@@ -323,7 +298,7 @@ Provide highly realistic estimated data if direct numbers are hard to query.`,
     sendEvent("step", { stepIndex: 3, status: "active", message: `Reading pitch conditions at ${venue}` });
     try {
       const venueResponse = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-1.5-flash",
         contents: `Evaluate the typical T20 pitch report, average score, and dew/spin conditions at the stadium venue: ${venue}.
 Return a strict JSON block structure. Return ONLY valid raw JSON with exact keys:
 {
@@ -336,8 +311,7 @@ Return a strict JSON block structure. Return ONLY valid raw JSON with exact keys
 }
 Be as detailed and accurate to historical matches as possible.`,
         config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json"
+          tools: [{ googleSearch: {} }]
         }
       });
 
@@ -354,7 +328,7 @@ Be as detailed and accurate to historical matches as possible.`,
     sendEvent("step", { stepIndex: 4, status: "active", message: "Running Matchup Intelligence Agent (Phase 2)..." });
     try {
       const insightResponse = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-1.5-flash",
         contents: `You are AnalysisAgent, Phase 2 of FormGuide.
 
 PHASE 1 DATA:
@@ -412,7 +386,7 @@ highlights (string array with exactly 3 elements), overallRisk, riskScore, confi
     sendEvent("step", { stepIndex: 5, status: "active", message: "Running Verdict Agent (Phase 3)..." });
     try {
       const verdictResponse = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-1.5-flash",
         contents: `You are VerdictAgent, Phase 3 of FormGuide.
 
 PHASE 1 DATA: ${JSON.stringify({batter: finalData.batter, bowler: finalData.bowler, headToHead: finalData.headToHead, venue: finalData.venue}, null, 2)}

@@ -426,40 +426,60 @@ export default function App() {
               {/* Batter Select Input */}
               <div className="flex flex-col space-y-1.5">
                 <label className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Batter Name</label>
-                <input
+                <select
                   id="batter-input"
-                  type="text"
                   value={batterName}
                   onChange={(e) => setBatterName(e.target.value)}
-                  placeholder="e.g. Virat Kohli"
                   className="bg-[#0A0A0B] border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                />
+                >
+                  <option value="Virat Kohli">Virat Kohli</option>
+                  <option value="Rohit Sharma">Rohit Sharma</option>
+                  <option value="Suryakumar Yadav">Suryakumar Yadav</option>
+                  <option value="MS Dhoni">MS Dhoni</option>
+                  <option value="Heinrich Klaasen">Heinrich Klaasen</option>
+                  <option value="Jos Buttler">Jos Buttler</option>
+                  <option value="Shubman Gill">Shubman Gill</option>
+                  <option value="Travis Head">Travis Head</option>
+                  <option value="David Warner">David Warner</option>
+                </select>
               </div>
 
               {/* Bowler Select Input */}
               <div className="flex flex-col space-y-1.5">
                 <label className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Bowler Name</label>
-                <input
+                <select
                   id="bowler-input"
-                  type="text"
                   value={bowlerName}
                   onChange={(e) => setBowlerName(e.target.value)}
-                  placeholder="e.g. Jasprit Bumrah"
                   className="bg-[#0A0A0B] border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                />
+                >
+                  <option value="Jasprit Bumrah">Jasprit Bumrah</option>
+                  <option value="Rashid Khan">Rashid Khan</option>
+                  <option value="Yuzvendra Chahal">Yuzvendra Chahal</option>
+                  <option value="Mitchell Starc">Mitchell Starc</option>
+                  <option value="Trent Boult">Trent Boult</option>
+                  <option value="Pat Cummins">Pat Cummins</option>
+                  <option value="Kagiso Rabada">Kagiso Rabada</option>
+                  <option value="Sunil Narine">Sunil Narine</option>
+                </select>
               </div>
 
               {/* Venue Selection */}
               <div className="flex flex-col space-y-1.5">
                 <label className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Match Venue / Pitch</label>
-                <input
+                <select
                   id="venue-input"
-                  type="text"
                   value={venueName}
                   onChange={(e) => setVenueName(e.target.value)}
-                  placeholder="Stadium name, City"
                   className="bg-[#0A0A0B] border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                />
+                >
+                  <option value="Chidambaram Stadium, Chennai">Chidambaram Stadium, Chennai</option>
+                  <option value="Narendra Modi Stadium, Ahmedabad">Narendra Modi Stadium, Ahmedabad</option>
+                  <option value="M. Chinnaswamy Stadium, Bengaluru">M. Chinnaswamy Stadium, Bengaluru</option>
+                  <option value="Wankhede Stadium, Mumbai">Wankhede Stadium, Mumbai</option>
+                  <option value="Eden Gardens, Kolkata">Eden Gardens, Kolkata</option>
+                  <option value="Rajiv Gandhi International Stadium, Hyderabad">Rajiv Gandhi Stadium, Hyderabad</option>
+                </select>
               </div>
             </div>
 
