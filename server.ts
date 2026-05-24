@@ -184,13 +184,32 @@ app.get("/api/analyze-stream", async (req, res) => {
       fetchedAt: new Date().toISOString()
     };
 
-    // Step 0: Batter stats & recent form via Search Grounding
-    sendEvent("step", { stepIndex: 0, status: "active", message: `Fetching recent form and T20/IPL stats for ${batter} via Google Search` });
+    const cricApiKey = process.env.CRICAPI_KEY;
+    async function fetchCricApiRaw(name: string) {
+      if (!cricApiKey) return null;
+      try {
+        const searchRes = await fetch(`https://api.cricapi.com/v1/players?apikey=${cricApiKey}&search=${encodeURIComponent(name)}`);
+        const searchData = await searchRes.json();
+        const player = searchData.data?.[0];
+        if (!player) return null;
+        const infoRes = await fetch(`https://api.cricapi.com/v1/players_info?apikey=${cricApiKey}&id=${player.id}`);
+        const infoData = await infoRes.json();
+        return infoData.data;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Step 0: Batter stats & recent form via CricAPI + Gemini
+    sendEvent("step", { stepIndex: 0, status: "active", message: `Fetching recent form and T20/IPL stats for ${batter}` });
     try {
+      const cricData = await fetchCricApiRaw(batter);
+      const cricContext = cricData ? `Raw CricAPI Data for batter:\n${JSON.stringify(cricData)}\n\n` : `(No CricAPI data found, use search or estimation)\n`;
+
       const batterResponse = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: `Search IPL 2026, IPL 2025 or international T20 stats and recent form for the following batter: ${batter}.
-Return a strict JSON block structure representing their information. Return ONLY valid raw JSON with exact keys:
+        contents: `${cricContext}Search IPL 2026, IPL 2025 or international T20 stats and recent form for the following batter: ${batter}.
+Return a strict JSON block structure representing their information based on the provided raw data (if available) and search. Return ONLY valid raw JSON with exact keys:
 {
   "name": "${batter}",
   "id": "bat_${Date.now()}",
@@ -228,13 +247,16 @@ If accurate career data is not found, provide highly realistic estimated statist
       sendEvent("step", { stepIndex: 0, status: "done", message: `Defaulted statistics for ${batter}`, partial: finalData.batter });
     }
 
-    // Step 1: Bowler stats & economy via Search Grounding
-    sendEvent("step", { stepIndex: 1, status: "active", message: `Fetching recent econ rate and T20/IPL stats for ${bowler} via Google Search` });
+    // Step 1: Bowler stats & economy via CricAPI + Gemini
+    sendEvent("step", { stepIndex: 1, status: "active", message: `Fetching recent econ rate and T20/IPL stats for ${bowler}` });
     try {
+      const cricData = await fetchCricApiRaw(bowler);
+      const cricContext = cricData ? `Raw CricAPI Data for bowler:\n${JSON.stringify(cricData)}\n\n` : `(No CricAPI data found, use search or estimation)\n`;
+
       const bowlerResponse = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: `Search IPL 2026, IPL 2025 or international T20 stats and recent bowling form for the following bowler: ${bowler}.
-Return a strict JSON block structure representing their information. Return ONLY valid raw JSON with exact keys:
+        contents: `${cricContext}Search IPL 2026, IPL 2025 or international T20 stats and recent bowling form for the following bowler: ${bowler}.
+Return a strict JSON block structure representing their information based on the provided raw data (if available) and search. Return ONLY valid raw JSON with exact keys:
 {
   "name": "${bowler}",
   "id": "bowl_${Date.now()}",
@@ -383,6 +405,68 @@ highlights (string array with exactly 3 elements), overallRisk, riskScore, confi
         overallRisk: "Contested",
         riskScore: 55,
         confidence: "medium"
+      };
+    }
+
+    // Step 5: Phase 3 Verdict Agent
+    sendEvent("step", { stepIndex: 5, status: "active", message: "Running Verdict Agent (Phase 3)..." });
+    try {
+      const verdictResponse = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `You are VerdictAgent, Phase 3 of FormGuide.
+
+PHASE 1 DATA: ${JSON.stringify({batter: finalData.batter, bowler: finalData.bowler, headToHead: finalData.headToHead, venue: finalData.venue}, null, 2)}
+PHASE 2 DATA: ${JSON.stringify(finalData.phase2, null, 2)}
+
+Perform all 7 tasks. Return ONLY valid JSON.
+
+Required fields:
+badge { label, color ("red"|"amber"|"green"), emoji },
+predictionText,
+attackWindow,
+statCards (array of 4) { label, value, subtext, highlight },
+batterCard { name, imageUrl, role, formBadge ("🔥 In Form"|"📉 Poor Form"|"⚡ Inconsistent"), topStat },
+bowlerCard { name, imageUrl, role, formBadge ("🔥 In Form"|"📉 Poor Form"|"⚡ Inconsistent"), topStat },
+timeline (array of 4 strings),
+shareText,
+generatedAt`,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.6,
+        }
+      });
+
+      const cleanText = cleanJsonResponse(verdictResponse.text || "");
+      finalData.phase3 = JSON.parse(cleanText);
+    } catch (e) {
+      console.error("Phase 3 Verdict failed", e);
+      finalData.phase3 = {
+        badge: { label: "CONTESTED", color: "amber", emoji: "🟡" },
+        predictionText: "An incredible matchup that will likely be decided in the fine margins. The bowler has the edge in the early overs, but the batter's recent form suggests they can capitalize towards the end.",
+        attackWindow: finalData.phase2?.phaseAnalysis?.bestAttackWindow || "Overs 15-20",
+        statCards: [
+          { label: "BATTER STRIKE RATE", value: finalData.batter.t20Stats.strikeRate.toString(), subtext: "Career", highlight: true },
+          { label: "BOWLER ECONOMY", value: finalData.bowler.t20Stats.economy.toString(), subtext: "Career", highlight: false },
+          { label: "HEAD-TO-HEAD", value: `${finalData.headToHead.dismissals} dismissals in ${finalData.headToHead.totalEncounters}`, subtext: "Historical", highlight: false },
+          { label: "RISK SCORE", value: finalData.phase2?.riskScore?.toString() || "50", subtext: "Out of 100", highlight: false }
+        ],
+        batterCard: {
+          name: finalData.batter.name,
+          imageUrl: finalData.batter.imageUrl,
+          role: finalData.batter.role,
+          formBadge: "🔥 In Form",
+          topStat: `SR: ${finalData.batter.t20Stats.strikeRate}`
+        },
+        bowlerCard: {
+          name: finalData.bowler.name,
+          imageUrl: finalData.bowler.imageUrl,
+          role: finalData.bowler.role,
+          formBadge: "⚡ Inconsistent",
+          topStat: `Eco: ${finalData.bowler.t20Stats.economy}`
+        },
+        timeline: ["Data Fetched", "Stats Analyzed", "Venue Factored", "Verdict Generated"],
+        shareText: `${finalData.batter.name} vs ${finalData.bowler.name} — CONTESTED | FormGuide`,
+        generatedAt: new Date().toISOString()
       };
     }
 

@@ -28,6 +28,8 @@ import { RoleBadge } from "./components/RoleBadge";
 import { StatBox } from "./components/StatsGrid";
 import { VerdictBadge } from "./components/VerdictBadge";
 import { FormSparkbar } from "./components/FormSparkbar";
+import { ResultsCard } from "./components/ResultsCard";
+import { PlayerCard } from "./components/PlayerCard";
 import { MatchupAnalysis, PipelineStepState, StepStatus } from "./types";
 
 const MATCHUP_PRESETS = [
@@ -60,6 +62,8 @@ export default function App() {
     { label: "Fetching bowler recent economy", status: "pending", message: "" },
     { label: "Analyzing head-to-head history", status: "pending", message: "" },
     { label: "Reading pitch & venue conditions", status: "pending", message: "" },
+    { label: "Running Matchup Intelligence (Phase 2)", status: "pending", message: "" },
+    { label: "Compiling Verdict & UI (Phase 3)", status: "pending", message: "" },
   ]);
 
   // Bash/Console Logs
@@ -129,6 +133,8 @@ export default function App() {
       { label: "Fetching bowler recent economy", status: "pending", message: "" },
       { label: "Analyzing head-to-head history", status: "pending", message: "" },
       { label: "Reading pitch & venue conditions", status: "pending", message: "" },
+      { label: "Running Matchup Intelligence (Phase 2)", status: "pending", message: "" },
+      { label: "Compiling Verdict & UI (Phase 3)", status: "pending", message: "" },
     ]);
 
     const url = `/api/analyze-stream?batter=${encodeURIComponent(batterName)}&bowler=${encodeURIComponent(bowlerName)}&venue=${encodeURIComponent(venueName)}`;
@@ -147,9 +153,9 @@ export default function App() {
             updated[stepIndex].message = message;
 
             // Trigger next step
-            if (stepIndex < 3 && updated[stepIndex + 1]) {
+            if (stepIndex < 5 && updated[stepIndex + 1]) {
               updated[stepIndex + 1].status = "active";
-              updated[stepIndex + 1].message = "Connecting with Google Search Grounding...";
+              updated[stepIndex + 1].message = "Connecting with models...";
             }
           } else if (status === "active" && updated[stepIndex]) {
             updated[stepIndex].status = "active";
@@ -160,7 +166,7 @@ export default function App() {
 
         // Calculate visual progress percentage increment
         setProgressPercent((prev) => {
-          const target = (stepIndex + 1) * 23; 
+          const target = (stepIndex + 1) * 16; 
           return target > prev ? target : prev;
         });
 
@@ -539,12 +545,28 @@ export default function App() {
                 })}
               </div>
 
-              {/* TAB 1: AI TACTICAL SIMULATION */}
+              {/* TAB 1: AI TACTICAL SIMULATION (Phase 3 + Phase 2) */}
               {activeTab === "tactical" && (
-                <div id="tactical-tab-content" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
-                  {/* Phase 2 Overall Risk & Stats */}
-                  <div className="lg:col-span-1 p-6 bg-[#0E0E10] border border-white/10 rounded-xl flex flex-col justify-between space-y-6">
+                <div id="tactical-tab-content" className="flex flex-col gap-6">
+
+                  {/* Phase 3 Verdict Cards */}
+                  {data.phase3 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                      <div className="lg:col-span-8 h-full">
+                        <ResultsCard data={data.phase3} />
+                      </div>
+                      <div className="lg:col-span-4 flex flex-col gap-4">
+                        <PlayerCard card={data.phase3.batterCard} />
+                        <PlayerCard card={data.phase3.bowlerCard} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Phase 2 Deep Dive */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+
+                    {/* Phase 2 Overall Risk & Stats */}
+                    <div className="lg:col-span-1 p-6 bg-[#0E0E10] border border-white/10 rounded-xl flex flex-col justify-between space-y-6">
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono block mb-1">Matchup Verdict</span>
@@ -627,6 +649,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+              </div>
               )}
 
               {/* TAB 2: RECENT INNINGS FORM */}

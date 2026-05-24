@@ -110,6 +110,35 @@ export interface Phase2Output {
   confidence: "high" | "medium" | "low";
 }
 
+export interface Phase3Output {
+  badge: { label: string; color: "red" | "amber" | "green"; emoji: string };
+  predictionText: string;
+  attackWindow: string;
+  statCards: {
+    label: string;
+    value: string;
+    subtext: string;
+    highlight: boolean;
+  }[];
+  batterCard: {
+    name: string;
+    imageUrl: string | null;
+    role: string;
+    formBadge: "🔥 In Form" | "📉 Poor Form" | "⚡ Inconsistent";
+    topStat: string;
+  };
+  bowlerCard: {
+    name: string;
+    imageUrl: string | null;
+    role: string;
+    formBadge: "🔥 In Form" | "📉 Poor Form" | "⚡ Inconsistent";
+    topStat: string;
+  };
+  timeline: [string, string, string, string];
+  shareText: string;
+  generatedAt: string;
+}
+
 export interface MatchupAnalysis {
   isMock: boolean;
   batter: BatterInfo;
@@ -118,6 +147,7 @@ export interface MatchupAnalysis {
   venue: VenueInfo;
   tacticalSimulation?: TacticalSimulationInfo; // Legacy
   phase2?: Phase2Output;
+  phase3?: Phase3Output;
   fetchedAt: string;
 }
 
