@@ -55,7 +55,9 @@ export function getGeminiModelCandidates() {
       [
         getFirstEnvValue(["GEMINI_MODEL"], ["gemini-1.5-flash"]),
         DEFAULT_GEMINI_MODEL,
+        "gemini-2.5-flash-lite",
         "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
       ].filter(Boolean) as string[],
     ),
   );

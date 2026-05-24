@@ -15,29 +15,54 @@ async function askJson(ai: any, contents: string) {
   let lastError: unknown = null;
 
   for (const model of getGeminiModelCandidates()) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents,
+    const attempts = [
+      {
+        label: "search",
         config: {
           tools: [{ googleSearch: {} }],
+          temperature: 0.2,
+        },
+      },
+      {
+        label: "json",
+        config: {
           responseMimeType: "application/json",
           temperature: 0.2,
         },
-      });
+      },
+    ];
 
-      return JSON.parse(cleanJsonResponse(response.text || ""));
-    } catch (error: any) {
-      lastError = error;
-      const status = error?.status || error?.error?.code || error?.code;
-      if (status !== 404) {
-        break;
+    for (const attempt of attempts) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents,
+          config: attempt.config,
+        });
+
+        return JSON.parse(cleanJsonResponse(response.text || ""));
+      } catch (error: any) {
+        lastError = error;
+        const status = error?.status || error?.error?.code || error?.code;
+        console.warn(`Gemini ${attempt.label} attempt failed for ${model}: ${summarizeGeminiError(error)}`);
+        if (status === 401 || status === 403) {
+          throw error;
+        }
       }
-      console.warn(`Gemini model ${model} returned 404; trying next candidate.`);
     }
   }
 
   throw lastError;
+}
+
+function summarizeGeminiError(error: any) {
+  const message =
+    error?.error?.message ||
+    error?.message ||
+    (typeof error === "string" ? error : "Unknown Gemini error");
+  const code = error?.status || error?.error?.code || error?.code || "unknown";
+
+  return `Gemini ${code}: ${String(message).replace(/\s+/g, " ").slice(0, 220)}`;
 }
 
 export default async function handler(req: any, res: any) {
@@ -72,7 +97,7 @@ export default async function handler(req: any, res: any) {
 {"name":"${batter}","id":"bat_live","imageUrl":null,"country":"India/External","role":"Batter","t20Stats":{"matches":100,"innings":95,"runs":3000,"average":35,"strikeRate":140,"highestScore":"100*","fifties":20,"hundreds":2},"recentForm":[{"match":"Recent match","runs":40,"balls":25,"sr":160}]}`);
     } catch (error) {
       console.error("Batter lookup failed", error);
-      sendEvent(res, "error", { message: `Could not fetch live batting stats for ${batter}.` });
+      sendEvent(res, "error", { message: `Could not fetch live batting stats for ${batter}. ${summarizeGeminiError(error)}` });
       res.end();
       return;
     }
@@ -84,7 +109,7 @@ export default async function handler(req: any, res: any) {
 {"name":"${bowler}","id":"bowl_live","imageUrl":null,"country":"India/External","role":"Bowler","t20Stats":{"matches":100,"wickets":120,"economy":7.2,"average":22,"bestFigures":"4/20"},"recentForm":[{"match":"Recent match","overs":4,"runs":28,"wickets":2,"economy":7}]}`);
     } catch (error) {
       console.error("Bowler lookup failed", error);
-      sendEvent(res, "error", { message: `Could not fetch live bowling stats for ${bowler}.` });
+      sendEvent(res, "error", { message: `Could not fetch live bowling stats for ${bowler}. ${summarizeGeminiError(error)}` });
       res.end();
       return;
     }
