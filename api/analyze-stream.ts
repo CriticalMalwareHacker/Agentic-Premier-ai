@@ -28,7 +28,7 @@ async function askJson(ai: any, contents: string) {
 export default async function handler(req: any, res: any) {
   const batter = String(req.query.batter || "Virat Kohli");
   const bowler = String(req.query.bowler || "Jasprit Bumrah");
-  const venue = String(req.query.venue || "Chidambaram Stadium, Chennai");
+  const venue = String(req.query.venue || "Overall T20 neutral venue context");
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");

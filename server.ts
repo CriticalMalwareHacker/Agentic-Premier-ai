@@ -279,6 +279,7 @@ function getSimulationData(rawBatter: string, rawBowler: string, venueInput: str
 
   const isKohli = batterName.toLowerCase().includes("virat") || batterName.toLowerCase().includes("kohli");
   const isBumrah = bowlerName.toLowerCase().includes("jasprit") || bowlerName.toLowerCase().includes("bumrah");
+  const isNeutralVenue = venueName.toLowerCase().includes("overall") || venueName.toLowerCase().includes("neutral");
 
   return {
     isMock: true,
@@ -338,11 +339,13 @@ function getSimulationData(rawBatter: string, rawBowler: string, venueInput: str
     },
     venue: {
       name: venueName,
-      city: venueName.includes("Chennai") ? "Chennai" : "Mumbai",
-      avgT20Score: venueName.includes("Chennai") ? 162 : 178,
-      spinAdvantage: venueName.includes("Chennai") ? true : false,
+      city: isNeutralVenue ? "Overall T20 sample" : venueName.includes("Chennai") ? "Chennai" : "Mumbai",
+      avgT20Score: isNeutralVenue ? 170 : venueName.includes("Chennai") ? 162 : 178,
+      spinAdvantage: isNeutralVenue ? false : venueName.includes("Chennai") ? true : false,
       dewFactor: true,
-      pitchDescription: venueName.includes("Chennai")
+      pitchDescription: isNeutralVenue
+        ? "Overall T20 context blends common scoring conditions across venues rather than applying a single stadium bias."
+        : venueName.includes("Chennai")
         ? "Typically slow and dry pitch with classic assistance for off-spinners. Grip and turn increases in the second innings, though dew might make it easier to bat second."
         : "A true batting paradise with fast outfield and short boundaries. Dew usually plays a significant role in second innings, making chasing highly favorable."
     },
@@ -408,7 +411,7 @@ app.get("/api/player-profile", async (req, res) => {
 app.get("/api/analyze-stream", async (req, res) => {
   const batter = (req.query.batter as string) || "Virat Kohli";
   const bowler = (req.query.bowler as string) || "Jasprit Bumrah";
-  const venue = (req.query.venue as string) || "Chidambaram Stadium, Chennai";
+  const venue = (req.query.venue as string) || "Overall T20 neutral venue context";
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");

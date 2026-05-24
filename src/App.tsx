@@ -30,13 +30,75 @@ import { VerdictBadge } from "./components/VerdictBadge";
 import { FormSparkbar } from "./components/FormSparkbar";
 import { ResultsCard } from "./components/ResultsCard";
 import { PlayerCard } from "./components/PlayerCard";
+import { SearchCombobox } from "./components/SearchCombobox";
 import { MatchupAnalysis, PipelineStepState, StepStatus } from "./types";
 
 const MATCHUP_PRESETS = [
-  { batter: "Virat Kohli", bowler: "Jasprit Bumrah", venue: "Chidambaram Stadium, Chennai" },
-  { batter: "Rohit Sharma", bowler: "Rashid Khan", venue: "Narendra Modi Stadium, Ahmedabad" },
-  { batter: "Heinrich Klaasen", bowler: "Yuzvendra Chahal", venue: "M. Chinnaswamy Stadium, Bengaluru" },
-  { batter: "Jos Buttler", bowler: "Mitchell Starc", venue: "Wankhede Stadium, Mumbai" },
+  { batter: "Virat Kohli", bowler: "Jasprit Bumrah" },
+  { batter: "Rohit Sharma", bowler: "Rashid Khan" },
+  { batter: "Heinrich Klaasen", bowler: "Yuzvendra Chahal" },
+  { batter: "Jos Buttler", bowler: "Mitchell Starc" },
+];
+
+const BATTER_OPTIONS = [
+  "Virat Kohli", "Rohit Sharma", "Suryakumar Yadav", "Shubman Gill", "Yashasvi Jaiswal",
+  "Ruturaj Gaikwad", "KL Rahul", "Sanju Samson", "Rishabh Pant", "Ishan Kishan",
+  "MS Dhoni", "Hardik Pandya", "Rinku Singh", "Tilak Varma", "Shreyas Iyer",
+  "Ajinkya Rahane", "Prithvi Shaw", "Abhishek Sharma", "Rahul Tripathi", "Nitish Rana",
+  "Venkatesh Iyer", "Shivam Dube", "Devdutt Padikkal", "Rajat Patidar", "Sai Sudharsan",
+  "Mayank Agarwal", "Deepak Hooda", "Axar Patel", "Ravindra Jadeja", "Washington Sundar",
+  "Jos Buttler", "Phil Salt", "Jonny Bairstow", "Liam Livingstone", "Harry Brook",
+  "Ben Stokes", "Moeen Ali", "Sam Curran", "Will Jacks", "Dawid Malan",
+  "Travis Head", "David Warner", "Steve Smith", "Glenn Maxwell", "Marcus Stoinis",
+  "Mitchell Marsh", "Tim David", "Cameron Green", "Jake Fraser-McGurk", "Josh Inglis",
+  "Kane Williamson", "Devon Conway", "Daryl Mitchell", "Finn Allen", "Glenn Phillips",
+  "Rachin Ravindra", "Heinrich Klaasen", "Aiden Markram", "Quinton de Kock", "David Miller",
+  "Faf du Plessis", "Tristan Stubbs", "Rilee Rossouw", "Dewald Brevis", "Ryan Rickelton",
+  "Babar Azam", "Mohammad Rizwan", "Fakhar Zaman", "Saim Ayub", "Iftikhar Ahmed",
+  "Nicholas Pooran", "Andre Russell", "Shimron Hetmyer", "Rovman Powell", "Kyle Mayers",
+  "Rahmanullah Gurbaz", "Ibrahim Zadran", "Najibullah Zadran", "Shakib Al Hasan", "Litton Das",
+  "Wanindu Hasaranga", "Kusal Mendis", "Charith Asalanka", "Pathum Nissanka", "Dasun Shanaka",
+];
+
+const BOWLER_OPTIONS = [
+  "Jasprit Bumrah", "Mohammed Shami", "Mohammed Siraj", "Arshdeep Singh", "Bhuvneshwar Kumar",
+  "Umesh Yadav", "Shardul Thakur", "Deepak Chahar", "T Natarajan", "Mukesh Kumar",
+  "Avesh Khan", "Prasidh Krishna", "Harshal Patel", "Varun Chakravarthy", "Yuzvendra Chahal",
+  "Kuldeep Yadav", "Ravi Bishnoi", "Ravichandran Ashwin", "Axar Patel", "Ravindra Jadeja",
+  "Washington Sundar", "Rahul Chahar", "Mayank Markande", "Rashid Khan", "Noor Ahmad",
+  "Mujeeb Ur Rahman", "Naveen-ul-Haq", "Fazalhaq Farooqi", "Mohammad Nabi", "Wanindu Hasaranga",
+  "Maheesh Theekshana", "Matheesha Pathirana", "Dushmantha Chameera", "Dilshan Madushanka", "Lasith Malinga",
+  "Shaheen Afridi", "Haris Rauf", "Naseem Shah", "Mohammad Amir", "Shadab Khan",
+  "Imad Wasim", "Abrar Ahmed", "Hasan Ali", "Mitchell Starc", "Pat Cummins",
+  "Josh Hazlewood", "Adam Zampa", "Nathan Ellis", "Spencer Johnson", "Sean Abbott",
+  "Kane Richardson", "Jhye Richardson", "Cameron Green", "Glenn Maxwell", "Trent Boult",
+  "Tim Southee", "Lockie Ferguson", "Matt Henry", "Ish Sodhi", "Mitchell Santner",
+  "Kyle Jamieson", "Adam Milne", "Kagiso Rabada", "Anrich Nortje", "Lungi Ngidi",
+  "Marco Jansen", "Tabraiz Shamsi", "Keshav Maharaj", "Gerald Coetzee", "Ottniel Baartman",
+  "Jofra Archer", "Mark Wood", "Adil Rashid", "Chris Jordan", "Reece Topley",
+  "Sam Curran", "Moeen Ali", "Tymal Mills", "Gus Atkinson", "Sunil Narine",
+  "Andre Russell", "Alzarri Joseph", "Akeal Hosein", "Obed McCoy", "Gudakesh Motie",
+  "Mustafizur Rahman", "Taskin Ahmed", "Shoriful Islam", "Mehidy Hasan Miraz", "Shakib Al Hasan",
+];
+
+const VENUE_OPTIONS = [
+  "Overall T20 neutral venue context", "Chidambaram Stadium, Chennai", "Narendra Modi Stadium, Ahmedabad",
+  "M. Chinnaswamy Stadium, Bengaluru", "Wankhede Stadium, Mumbai", "Eden Gardens, Kolkata",
+  "Rajiv Gandhi International Stadium, Hyderabad", "Arun Jaitley Stadium, Delhi", "Sawai Mansingh Stadium, Jaipur",
+  "Maharaja Yadavindra Singh Stadium, Mullanpur", "Bharat Ratna Shri Atal Bihari Vajpayee Ekana Cricket Stadium, Lucknow",
+  "Barsapara Cricket Stadium, Guwahati", "Brabourne Stadium, Mumbai", "DY Patil Stadium, Navi Mumbai",
+  "Holkar Cricket Stadium, Indore", "Green Park, Kanpur", "Barabati Stadium, Cuttack",
+  "HPCA Stadium, Dharamsala", "JSCA International Stadium, Ranchi", "Shaheed Veer Narayan Singh Stadium, Raipur",
+  "ACA-VDCA Cricket Stadium, Visakhapatnam", "MCA Stadium, Pune", "Sharjah Cricket Stadium, Sharjah",
+  "Dubai International Cricket Stadium, Dubai", "Sheikh Zayed Stadium, Abu Dhabi", "Melbourne Cricket Ground, Melbourne",
+  "Sydney Cricket Ground, Sydney", "Adelaide Oval, Adelaide", "The Gabba, Brisbane", "Perth Stadium, Perth",
+  "Lord's, London", "The Oval, London", "Old Trafford, Manchester", "Edgbaston, Birmingham",
+  "Trent Bridge, Nottingham", "Headingley, Leeds", "Sophia Gardens, Cardiff", "Newlands, Cape Town",
+  "The Wanderers, Johannesburg", "SuperSport Park, Centurion", "Kingsmead, Durban", "Gaddafi Stadium, Lahore",
+  "National Stadium, Karachi", "Rawalpindi Cricket Stadium, Rawalpindi", "R. Premadasa Stadium, Colombo",
+  "Pallekele International Cricket Stadium, Kandy", "Shere Bangla National Stadium, Mirpur",
+  "Zahur Ahmed Chowdhury Stadium, Chattogram", "Queen's Park Oval, Port of Spain", "Kensington Oval, Bridgetown",
+  "Sabina Park, Kingston", "Providence Stadium, Guyana", "Brian Lara Stadium, Tarouba",
 ];
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
@@ -46,7 +108,7 @@ export default function App() {
   // Analytical Input States
   const [batterName, setBatterName] = useState("Virat Kohli");
   const [bowlerName, setBowlerName] = useState("Jasprit Bumrah");
-  const [venueName, setVenueName] = useState("Chidambaram Stadium, Chennai");
+  const [venueName, setVenueName] = useState("Overall T20 neutral venue context");
 
   const [activeTab, setActiveTab] = useState<"tactical" | "recent" | "h2h" | "pitch">("tactical");
   const [analyzing, setAnalyzing] = useState(false);
@@ -79,7 +141,7 @@ export default function App() {
   // Bash/Console Logs
   const [terminalLogs, setTerminalLogs] = useState<string[]>([
     "System loaded. Ready for tactical indexing.",
-    "Type custom names or select a matching preset from the side list.",
+    "Search for a batter and bowler, or select a preset matchup.",
     "Status: System responsive."
   ]);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -119,18 +181,17 @@ export default function App() {
     setTerminalLogs((prev) => [...prev, `[${timestamp}] ${msg}`]);
   };
 
-  const handleApplyPreset = (b: string, bowl: string, v: string) => {
+  const handleApplyPreset = (b: string, bowl: string) => {
     setBatterName(b);
     setBowlerName(bowl);
-    setVenueName(v);
-    addLog(`Preset selected: ${b} vs ${bowl} at ${v}`);
+    addLog(`Preset selected: ${b} vs ${bowl}`);
   };
 
   const triggerAnalysis = (silent: boolean = false) => {
     if (analyzing) return;
 
     if (!silent) {
-      addLog(`Initiating deep search pipeline for ${batterName} vs ${bowlerName} at ${venueName}...`);
+      addLog(`Initiating matchup pipeline for ${batterName} vs ${bowlerName}...`);
     }
     
     setAnalyzing(true);
@@ -353,7 +414,7 @@ export default function App() {
                     <button
                       id={`preset-btn-${idx}`}
                       key={idx}
-                      onClick={() => handleApplyPreset(p.batter, p.bowler, p.venue)}
+                      onClick={() => handleApplyPreset(p.batter, p.bowler)}
                       className={`w-full text-left px-3 py-2 rounded text-xs transition-all flex items-center justify-between ${
                         isActive
                           ? "bg-white/5 border border-white/10 text-emerald-400 italic font-medium"
@@ -423,78 +484,37 @@ export default function App() {
           {/* Top Editorial Stage */}
           <div>
             <h1 className="text-3xl md:text-5xl font-serif italic text-white leading-tight mb-2 tracking-tight">
-              Evaluate Cricket <br/>Recent Form
+              Batter vs Bowler <br/>Matchup Index
             </h1>
             <p className="text-white/40 max-w-xl text-xs md:text-sm leading-relaxed">
-              Staged query records utilize multi-agent web execution loops to parse batter scoring arcs and bowler economy bounds directly for the chosen stadium venue pitch.
+              Compare a batter's scoring profile against a bowler's threat pattern, then use the stadium tab only when pitch context matters.
             </p>
           </div>
 
           {/* Interactive Core Selection Fields Form */}
           <div className="bg-[#0E0E10] border border-white/10 rounded-xl p-4 md:p-6 space-y-4 shadow-xl">
             <h2 className="text-xs uppercase text-white/40 font-mono tracking-widest border-b border-white/5 pb-2">
-              Pipeline Parameters
+              Matchup Parameters
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Batter Select Input */}
-              <div className="flex flex-col space-y-1.5">
-                <label className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Batter Name</label>
-                <select
-                  id="batter-input"
-                  value={batterName}
-                  onChange={(e) => setBatterName(e.target.value)}
-                  className="bg-[#0A0A0B] border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                >
-                  <option value="Virat Kohli">Virat Kohli</option>
-                  <option value="Rohit Sharma">Rohit Sharma</option>
-                  <option value="Suryakumar Yadav">Suryakumar Yadav</option>
-                  <option value="MS Dhoni">MS Dhoni</option>
-                  <option value="Heinrich Klaasen">Heinrich Klaasen</option>
-                  <option value="Jos Buttler">Jos Buttler</option>
-                  <option value="Shubman Gill">Shubman Gill</option>
-                  <option value="Travis Head">Travis Head</option>
-                  <option value="David Warner">David Warner</option>
-                </select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SearchCombobox
+                id="batter-input"
+                label="Batter"
+                value={batterName}
+                options={BATTER_OPTIONS}
+                placeholder="Search batter name"
+                onChange={setBatterName}
+              />
 
-              {/* Bowler Select Input */}
-              <div className="flex flex-col space-y-1.5">
-                <label className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Bowler Name</label>
-                <select
-                  id="bowler-input"
-                  value={bowlerName}
-                  onChange={(e) => setBowlerName(e.target.value)}
-                  className="bg-[#0A0A0B] border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                >
-                  <option value="Jasprit Bumrah">Jasprit Bumrah</option>
-                  <option value="Rashid Khan">Rashid Khan</option>
-                  <option value="Yuzvendra Chahal">Yuzvendra Chahal</option>
-                  <option value="Mitchell Starc">Mitchell Starc</option>
-                  <option value="Trent Boult">Trent Boult</option>
-                  <option value="Pat Cummins">Pat Cummins</option>
-                  <option value="Kagiso Rabada">Kagiso Rabada</option>
-                  <option value="Sunil Narine">Sunil Narine</option>
-                </select>
-              </div>
-
-              {/* Venue Selection */}
-              <div className="flex flex-col space-y-1.5">
-                <label className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Match Venue / Pitch</label>
-                <select
-                  id="venue-input"
-                  value={venueName}
-                  onChange={(e) => setVenueName(e.target.value)}
-                  className="bg-[#0A0A0B] border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                >
-                  <option value="Chidambaram Stadium, Chennai">Chidambaram Stadium, Chennai</option>
-                  <option value="Narendra Modi Stadium, Ahmedabad">Narendra Modi Stadium, Ahmedabad</option>
-                  <option value="M. Chinnaswamy Stadium, Bengaluru">M. Chinnaswamy Stadium, Bengaluru</option>
-                  <option value="Wankhede Stadium, Mumbai">Wankhede Stadium, Mumbai</option>
-                  <option value="Eden Gardens, Kolkata">Eden Gardens, Kolkata</option>
-                  <option value="Rajiv Gandhi International Stadium, Hyderabad">Rajiv Gandhi Stadium, Hyderabad</option>
-                </select>
-              </div>
+              <SearchCombobox
+                id="bowler-input"
+                label="Bowler"
+                value={bowlerName}
+                options={BOWLER_OPTIONS}
+                placeholder="Search bowler name"
+                onChange={setBowlerName}
+              />
             </div>
 
             {/* Execute Button Bar */}
@@ -553,14 +573,48 @@ export default function App() {
           {/* Analysis Tab View Cards */}
           {data && (
             <div className="space-y-4">
+              <div className="bg-[#0E0E10] border border-white/10 rounded-xl p-5 md:p-6 space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                  <div className="space-y-2 max-w-3xl">
+                    <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Quick Matchup Summary</span>
+                    <h2 className="text-xl md:text-2xl text-white font-semibold tracking-tight">
+                      {data.batter.name} vs {data.bowler.name}
+                    </h2>
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      {data.phase3?.predictionText ||
+                        data.phase2?.headToHead.summary ||
+                        `${data.batter.name} brings a ${data.batter.t20Stats?.strikeRate ?? "steady"} strike-rate profile against ${data.bowler.name}'s ${data.bowler.t20Stats?.economy ?? "measured"} economy-rate threat.`}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 min-w-full lg:min-w-[320px]">
+                    <div className="bg-[#0A0A0B] border border-white/10 rounded p-3">
+                      <span className="block text-[9px] uppercase tracking-widest text-white/30 font-mono">Verdict</span>
+                      <span className="text-sm text-emerald-300 font-mono">{data.phase2?.overallRisk ?? "Contested"}</span>
+                    </div>
+                    <div className="bg-[#0A0A0B] border border-white/10 rounded p-3">
+                      <span className="block text-[9px] uppercase tracking-widest text-white/30 font-mono">Risk</span>
+                      <span className="text-sm text-white font-mono">{data.phase2?.riskScore ?? 50}/100</span>
+                    </div>
+                    <div className="bg-[#0A0A0B] border border-white/10 rounded p-3">
+                      <span className="block text-[9px] uppercase tracking-widest text-white/30 font-mono">Batter SR</span>
+                      <span className="text-sm text-white font-mono">{data.batter.t20Stats?.strikeRate ?? "-"}</span>
+                    </div>
+                    <div className="bg-[#0A0A0B] border border-white/10 rounded p-3">
+                      <span className="block text-[9px] uppercase tracking-widest text-white/30 font-mono">Bowler Econ</span>
+                      <span className="text-sm text-white font-mono">{data.bowler.t20Stats?.economy ?? "-"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               
               {/* Tabs selectors bar */}
               <div className="flex border-b border-white/10 py-1 overflow-x-auto whitespace-nowrap">
                 {[
-                  { id: "tactical", title: "Tactical Simulation" },
+                  { id: "tactical", title: "Main Analysis" },
                   { id: "recent", title: "Recent Innings Form" },
                   { id: "h2h", title: "H2H Dual Index" },
-                  { id: "pitch", title: "Stadium Pitch Report" }
+                  { id: "pitch", title: "Stadium Context" }
                 ].map((tb) => {
                   const isActive = activeTab === tb.id;
                   return (
@@ -875,10 +929,37 @@ export default function App() {
 
               {/* TAB 4: STADIUM PITCH REPORT */}
               {activeTab === "pitch" && (
-                <div id="pitch-tab-content" className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  
-                  {/* Pitch properties bar */}
-                  <div className="md:col-span-1 p-5 bg-[#0E0E10] border border-white/10 rounded-xl space-y-4">
+                <div id="pitch-tab-content" className="space-y-6">
+                  <div className="bg-[#0E0E10] border border-white/10 rounded-xl p-5 md:p-6 space-y-4">
+                    <div>
+                      <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Optional Stadium Feature</span>
+                      <p className="text-sm text-slate-300 mt-2 max-w-2xl">
+                        The core model is batter versus bowler. Pick a stadium here only when you want the pitch and venue context layered onto the matchup.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
+                      <SearchCombobox
+                        id="venue-input"
+                        label="Stadium / Venue"
+                        value={venueName}
+                        options={VENUE_OPTIONS}
+                        placeholder="Search venue or use overall context"
+                        onChange={setVenueName}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => triggerAnalysis(false)}
+                        disabled={analyzing}
+                        className="h-10 px-5 text-xs font-bold tracking-wider uppercase rounded bg-white text-black hover:bg-zinc-200 disabled:bg-[#0A0A0B] disabled:text-white/30 disabled:border disabled:border-white/5"
+                      >
+                        Refresh Venue
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Pitch properties bar */}
+                    <div className="md:col-span-1 p-5 bg-[#0E0E10] border border-white/10 rounded-xl space-y-4">
                     <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Selected Venue Location</span>
                     <h4 className="text-lg font-serif italic text-white">{data.venue?.name}</h4>
                     
@@ -904,10 +985,10 @@ export default function App() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                    </div>
 
-                  {/* Long descriptive review text box */}
-                  <div className="md:col-span-2 p-6 bg-[#0E0E10] border border-white/10 rounded-xl flex flex-col justify-between">
+                    {/* Long descriptive review text box */}
+                    <div className="md:col-span-2 p-6 bg-[#0E0E10] border border-white/10 rounded-xl flex flex-col justify-between">
                     <div className="space-y-3">
                       <span className="text-[10px] text-white/40 uppercase tracking-wider font-mono flex items-center gap-1.5">
                         <MapPin size={11} className="text-emerald-400" />
@@ -929,6 +1010,7 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                  </div>
 
                 </div>
               )}
@@ -947,7 +1029,7 @@ export default function App() {
               ref={terminalRef}
               className="p-4 bg-[#0A0A0B] font-mono text-[11px] leading-relaxed text-slate-300 h-32 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-white/10"
             >
-              <div className="text-emerald-500">$ search-grounding --batter &ldquo;{batterName}&rdquo; --bowler &ldquo;{bowlerName}&rdquo; --stadium &ldquo;{venueName}&rdquo;</div>
+              <div className="text-emerald-500">$ search-grounding --batter &ldquo;{batterName}&rdquo; --bowler &ldquo;{bowlerName}&rdquo;</div>
               {terminalLogs.map((log, i) => {
                 let colorClass = "text-white/60";
                 if (log.includes("[SYSTEM INFO]")) colorClass = "text-emerald-400/80";

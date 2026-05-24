@@ -240,6 +240,7 @@ export function getSimulationData(rawBatter: string, rawBowler: string, venueInp
   const venueName = venueInput.trim() || "Chidambaram Stadium, Chennai";
   const isKohli = batterName.toLowerCase().includes("virat") || batterName.toLowerCase().includes("kohli");
   const isBumrah = bowlerName.toLowerCase().includes("jasprit") || bowlerName.toLowerCase().includes("bumrah");
+  const isNeutralVenue = venueName.toLowerCase().includes("overall") || venueName.toLowerCase().includes("neutral");
 
   return {
     isMock: true,
@@ -297,11 +298,13 @@ export function getSimulationData(rawBatter: string, rawBowler: string, venueInp
     },
     venue: {
       name: venueName,
-      city: venueName.includes("Chennai") ? "Chennai" : "Mumbai",
-      avgT20Score: venueName.includes("Chennai") ? 162 : 178,
-      spinAdvantage: venueName.includes("Chennai"),
+      city: isNeutralVenue ? "Overall T20 sample" : venueName.includes("Chennai") ? "Chennai" : "Mumbai",
+      avgT20Score: isNeutralVenue ? 170 : venueName.includes("Chennai") ? 162 : 178,
+      spinAdvantage: isNeutralVenue ? false : venueName.includes("Chennai"),
       dewFactor: true,
-      pitchDescription: venueName.includes("Chennai")
+      pitchDescription: isNeutralVenue
+        ? "Overall T20 context blends common scoring conditions across venues rather than applying a single stadium bias."
+        : venueName.includes("Chennai")
         ? "Typically slow and dry pitch with assistance for spinners. Grip and turn increases in the second innings, though dew can help batting later."
         : "A fast-scoring surface with a quick outfield and shorter boundary options. Dew usually supports chasing.",
     },
