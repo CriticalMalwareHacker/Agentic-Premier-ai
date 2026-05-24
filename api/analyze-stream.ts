@@ -171,8 +171,8 @@ export default async function handler(req: any, res: any) {
     sendEvent(res, "step", { stepIndex: 1, status: "done", message: `Processed bowling profile for ${data.bowler?.name || bowler}` });
     sendEvent(res, "step", { stepIndex: 2, status: "done", message: "Head-to-head processed" });
     sendEvent(res, "step", { stepIndex: 3, status: "done", message: "Venue context processed" });
-    sendEvent(res, "step", { stepIndex: 4, status: "done", message: "Matchup intelligence compiled" });
-    sendEvent(res, "step", { stepIndex: 5, status: "done", message: "Verdict compiled" });
+    sendEvent(res, "step", { stepIndex: 6, status: "done", message: "Matchup intelligence compiled" });
+    sendEvent(res, "step", { stepIndex: 7, status: "done", message: "Verdict compiled" });
     sendEvent(res, "complete", {
       ...data,
       isMock: false,

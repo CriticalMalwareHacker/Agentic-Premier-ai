@@ -104,6 +104,17 @@ const VENUE_OPTIONS = [
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
 const apiPath = (path: string) => `${API_BASE_URL}${path}`;
 
+const PIPELINE_STEPS = [
+  "Fetching matchup overview",
+  "Resolving core stat profile",
+  "Analyzing head-to-head history",
+  "Reading pitch & venue context",
+  "Fetching recent innings form",
+  "Fetching player images",
+  "Running Matchup Intelligence",
+  "Compiling Verdict & UI",
+];
+
 export default function App() {
   // Analytical Input States
   const [batterName, setBatterName] = useState("Virat Kohli");
@@ -130,14 +141,9 @@ export default function App() {
   });
 
   // Pipeline execution step indicators
-  const [steps, setSteps] = useState<PipelineStepState[]>([
-    { label: "Fetching batter recent form", status: "pending", message: "" },
-    { label: "Fetching bowler recent economy", status: "pending", message: "" },
-    { label: "Analyzing head-to-head history", status: "pending", message: "" },
-    { label: "Reading pitch & venue conditions", status: "pending", message: "" },
-    { label: "Running Matchup Intelligence (Phase 2)", status: "pending", message: "" },
-    { label: "Compiling Verdict & UI (Phase 3)", status: "pending", message: "" },
-  ]);
+  const [steps, setSteps] = useState<PipelineStepState[]>(
+    PIPELINE_STEPS.map((label) => ({ label, status: "pending", message: "" }))
+  );
 
   // Bash/Console Logs
   const [terminalLogs, setTerminalLogs] = useState<string[]>([
@@ -188,6 +194,110 @@ export default function App() {
     addLog(`Preset selected: ${b} vs ${bowl}`);
   };
 
+  const patchStep = (stepIndex: number, status: StepStatus, message: string) => {
+    setSteps((prev) => {
+      const updated = [...prev];
+      if (updated[stepIndex]) {
+        updated[stepIndex] = { ...updated[stepIndex], status, message };
+      }
+      return updated;
+    });
+  };
+
+  const mergeRecentForm = (formData: any) => {
+    setAnalysisResult((prev) => {
+      if (!prev) return prev;
+
+      const batterStats = formData?.batter?.t20Stats;
+      const bowlerStats = formData?.bowler?.t20Stats;
+      const batterRecentForm = Array.isArray(formData?.batter?.recentForm) ? formData.batter.recentForm : prev.batter.recentForm;
+      const bowlerRecentForm = Array.isArray(formData?.bowler?.recentForm) ? formData.bowler.recentForm : prev.bowler.recentForm;
+
+      return {
+        ...prev,
+        batter: {
+          ...prev.batter,
+          t20Stats: batterStats || prev.batter.t20Stats,
+          recentForm: batterRecentForm,
+        },
+        bowler: {
+          ...prev.bowler,
+          t20Stats: bowlerStats || prev.bowler.t20Stats,
+          recentForm: bowlerRecentForm,
+        },
+      };
+    });
+  };
+
+  const mergePlayerImages = (imageData: any) => {
+    setAnalysisResult((prev) => {
+      if (!prev) return prev;
+
+      const batterImage = imageData?.batter?.profile?.imageUrl || prev.batter.imageUrl;
+      const bowlerImage = imageData?.bowler?.profile?.imageUrl || prev.bowler.imageUrl;
+
+      return {
+        ...prev,
+        batter: {
+          ...prev.batter,
+          imageUrl: batterImage,
+          country: imageData?.batter?.profile?.country || prev.batter.country,
+          role: imageData?.batter?.profile?.role || prev.batter.role,
+        },
+        bowler: {
+          ...prev.bowler,
+          imageUrl: bowlerImage,
+          country: imageData?.bowler?.profile?.country || prev.bowler.country,
+          role: imageData?.bowler?.profile?.role || prev.bowler.role,
+        },
+        phase3: prev.phase3
+          ? {
+              ...prev.phase3,
+              batterCard: { ...prev.phase3.batterCard, imageUrl: batterImage },
+              bowlerCard: { ...prev.phase3.bowlerCard, imageUrl: bowlerImage },
+            }
+          : prev.phase3,
+      };
+    });
+  };
+
+  const runPostAnalysisAgents = async (silent: boolean) => {
+    const recentUrl = apiPath(`/api/recent-form?batter=${encodeURIComponent(batterName)}&bowler=${encodeURIComponent(bowlerName)}`);
+    const imagesUrl = apiPath(`/api/player-images?batter=${encodeURIComponent(batterName)}&bowler=${encodeURIComponent(bowlerName)}`);
+
+    patchStep(4, "active", "Recent Form Agent fetching innings and bowling spells...");
+    setProgressPercent(70);
+    try {
+      const response = await fetch(recentUrl);
+      if (!response.ok) throw new Error(`Recent Form Agent returned ${response.status}`);
+      const formData = await response.json();
+      mergeRecentForm(formData);
+      patchStep(4, "done", "Recent form updated from live lookup");
+      if (!silent) addLog("[RECENT FORM AGENT] Updated innings and bowling spells.");
+    } catch (error: any) {
+      patchStep(4, "done", "Recent form unavailable; keeping main analysis values");
+      if (!silent) addLog(`[RECENT FORM AGENT] ${error?.message || "Recent form lookup failed."}`);
+    }
+
+    patchStep(5, "active", "Player Image Agent resolving profile photos...");
+    setProgressPercent(84);
+    try {
+      const response = await fetch(imagesUrl);
+      if (!response.ok) throw new Error(`Player Image Agent returned ${response.status}`);
+      const imageData = await response.json();
+      mergePlayerImages(imageData);
+      patchStep(5, "done", "Player images updated");
+      if (!silent) addLog("[IMAGE AGENT] Player images updated.");
+    } catch (error: any) {
+      patchStep(5, "done", "Player images unavailable");
+      if (!silent) addLog(`[IMAGE AGENT] ${error?.message || "Image lookup failed."}`);
+    }
+
+    patchStep(6, "done", "Matchup intelligence ready");
+    patchStep(7, "done", "Verdict ready");
+    setProgressPercent(100);
+  };
+
   const triggerAnalysis = (silent: boolean = false) => {
     if (analyzing) return;
 
@@ -200,15 +310,11 @@ export default function App() {
     setAnalysisResult(null);
     setPipelineError(null);
 
-    // Initialise steps
-    setSteps([
-      { label: "Fetching batter recent form", status: "active", message: `Connecting to cricket stats and profile APIs...` },
-      { label: "Fetching bowler recent economy", status: "pending", message: "" },
-      { label: "Analyzing head-to-head history", status: "pending", message: "" },
-      { label: "Reading pitch & venue conditions", status: "pending", message: "" },
-      { label: "Running Matchup Intelligence (Phase 2)", status: "pending", message: "" },
-      { label: "Compiling Verdict & UI (Phase 3)", status: "pending", message: "" },
-    ]);
+    setSteps(PIPELINE_STEPS.map((label, index) => ({
+      label,
+      status: index === 0 ? "active" : "pending",
+      message: index === 0 ? "Connecting to matchup analysis agent..." : "",
+    })));
 
     const url = apiPath(`/api/analyze-stream?batter=${encodeURIComponent(batterName)}&bowler=${encodeURIComponent(bowlerName)}&venue=${encodeURIComponent(venueName)}`);
     const eventSource = new EventSource(url);
@@ -226,7 +332,7 @@ export default function App() {
             updated[stepIndex].message = message;
 
             // Trigger next step
-            if (stepIndex < 5 && updated[stepIndex + 1]) {
+            if (stepIndex < 3 && updated[stepIndex + 1]) {
               updated[stepIndex + 1].status = "active";
               updated[stepIndex + 1].message = "Connecting with models...";
             }
@@ -239,7 +345,7 @@ export default function App() {
 
         // Calculate visual progress percentage increment
         setProgressPercent((prev) => {
-          const target = (stepIndex + 1) * 16; 
+          const target = Math.min(68, (stepIndex + 1) * 16); 
           return target > prev ? target : prev;
         });
 
@@ -255,14 +361,10 @@ export default function App() {
       try {
         const data = JSON.parse(e.data) as MatchupAnalysis;
         setAnalysisResult(data);
-        setProgressPercent(100);
-        setAnalyzing(false);
-        
-        // Mark all steps is done
-        setSteps((prev) => prev.map(s => ({ ...s, status: "done" })));
+        patchStep(6, "active", "Running post-matchup enrichment agents...");
 
         if (!silent) {
-          addLog(`[COMPLETE] Pipeline finished. Strategic matchup score computed: Batting Win %: ${data.tacticalSimulation?.winnerMatchupChance ?? 50}%`);
+          addLog(`[COMPLETE] Main matchup analysis finished. Running enrichment agents...`);
           if (data.isMock) {
             addLog("[DATABASE] Displaying beautiful local-matched cricket parameters.");
           } else {
@@ -270,6 +372,9 @@ export default function App() {
           }
         }
         eventSource.close();
+        runPostAnalysisAgents(silent).finally(() => {
+          setAnalyzing(false);
+        });
       } catch (err) {
         console.error("Parse event complete error", err);
         setAnalyzing(false);

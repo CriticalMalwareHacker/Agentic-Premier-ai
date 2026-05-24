@@ -5,6 +5,12 @@
     },
     "api/player-profile.ts": {
       "maxDuration": 10
+    },
+    "api/player-images.ts": {
+      "maxDuration": 10
+    },
+    "api/recent-form.ts": {
+      "maxDuration": 30
     }
   }
 }

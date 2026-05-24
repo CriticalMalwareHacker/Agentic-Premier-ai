@@ -170,6 +170,22 @@ function pickMediaWikiPage(pages: Record<string, MediaWikiPage> | undefined, pla
 }
 
 async function fetchWikimediaPortrait(playerName: string): Promise<PlayerProfile | null> {
+  const summaryCandidates = [`${playerName} cricketer`, playerName];
+  for (const candidate of summaryCandidates) {
+    try {
+      const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(candidate.replace(/\s+/g, "_"))}`;
+      const summary = await fetchJson<{ title?: string; thumbnail?: { source?: string } }>(summaryUrl, 5000);
+      if (isUsableImageUrl(summary.thumbnail?.source)) {
+        return {
+          name: summary.title || playerName,
+          imageUrl: summary.thumbnail!.source,
+        };
+      }
+    } catch {
+      // Try the query API below.
+    }
+  }
+
   const searchUrl = new URL("https://en.wikipedia.org/w/api.php");
   searchUrl.searchParams.set("action", "query");
   searchUrl.searchParams.set("format", "json");
