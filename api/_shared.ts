@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import type { BatterInfo, BowlerInfo, MatchupAnalysis } from "../src/types";
 
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const CRICKETDATA_KEY_NAMES = ["CRICKETDATA_API_KEY", "CRICAPI_KEY", "CRICAPI_API_KEY"];
 
 type PlayerProfile = {
@@ -47,6 +47,18 @@ export function getFirstEnvValue(names: string[], placeholders: string[] = []) {
   }
 
   return null;
+}
+
+export function getGeminiModelCandidates() {
+  return Array.from(
+    new Set(
+      [
+        getFirstEnvValue(["GEMINI_MODEL"], ["gemini-1.5-flash"]),
+        DEFAULT_GEMINI_MODEL,
+        "gemini-2.0-flash",
+      ].filter(Boolean) as string[],
+    ),
+  );
 }
 
 export function getGeminiClient() {

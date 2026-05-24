@@ -1,8 +1,8 @@
 import {
   cleanJsonResponse,
   enrichMatchupPlayers,
-  GEMINI_MODEL,
   getGeminiClient,
+  getGeminiModelCandidates,
   getSimulationData,
 } from "./_shared.js";
 
@@ -12,17 +12,32 @@ function sendEvent(res: any, event: string, data: unknown) {
 }
 
 async function askJson(ai: any, contents: string) {
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents,
-    config: {
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json",
-      temperature: 0.2,
-    },
-  });
+  let lastError: unknown = null;
 
-  return JSON.parse(cleanJsonResponse(response.text || ""));
+  for (const model of getGeminiModelCandidates()) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
+      });
+
+      return JSON.parse(cleanJsonResponse(response.text || ""));
+    } catch (error: any) {
+      lastError = error;
+      const status = error?.status || error?.error?.code || error?.code;
+      if (status !== 404) {
+        break;
+      }
+      console.warn(`Gemini model ${model} returned 404; trying next candidate.`);
+    }
+  }
+
+  throw lastError;
 }
 
 export default async function handler(req: any, res: any) {
