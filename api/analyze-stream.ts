@@ -1,58 +1,12 @@
 import {
   cleanJsonResponse,
-  enrichMatchupPlayers,
   getGeminiClient,
   getGeminiModelCandidates,
-  getSimulationData,
 } from "./_shared.js";
 
 function sendEvent(res: any, event: string, data: unknown) {
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(data)}\n\n`);
-}
-
-async function askJson(ai: any, contents: string) {
-  let lastError: unknown = null;
-
-  for (const model of getGeminiModelCandidates()) {
-    const attempts = [
-      {
-        label: "search",
-        config: {
-          tools: [{ googleSearch: {} }],
-          temperature: 0.2,
-        },
-      },
-      {
-        label: "json",
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-        },
-      },
-    ];
-
-    for (const attempt of attempts) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents,
-          config: attempt.config,
-        });
-
-        return JSON.parse(cleanJsonResponse(response.text || ""));
-      } catch (error: any) {
-        lastError = error;
-        const status = error?.status || error?.error?.code || error?.code;
-        console.warn(`Gemini ${attempt.label} attempt failed for ${model}: ${summarizeGeminiError(error)}`);
-        if (status === 401 || status === 403) {
-          throw error;
-        }
-      }
-    }
-  }
-
-  throw lastError;
 }
 
 function summarizeGeminiError(error: any) {
@@ -63,6 +17,131 @@ function summarizeGeminiError(error: any) {
   const code = error?.status || error?.error?.code || error?.code || "unknown";
 
   return `Gemini ${code}: ${String(message).replace(/\s+/g, " ").slice(0, 220)}`;
+}
+
+async function askMatchupJson(ai: any, batter: string, bowler: string, venue: string) {
+  let lastError: unknown = null;
+  const models = getGeminiModelCandidates().slice(0, 2);
+
+  const prompt = `Return ONLY valid raw JSON for this cricket matchup: ${batter} vs ${bowler}.
+Venue context: ${venue}.
+
+Use known cricket records and recent publicly available T20/IPL context. Do not include markdown.
+If exact recent-form scorecards are not confidently available, return an empty recentForm array instead of inventing match scores.
+
+Required JSON shape:
+{
+  "isMock": false,
+  "batter": {
+    "name": "${batter}",
+    "id": "bat_live",
+    "imageUrl": null,
+    "country": "Country",
+    "role": "Batter",
+    "t20Stats": {
+      "matches": 0,
+      "innings": 0,
+      "runs": 0,
+      "average": 0,
+      "strikeRate": 0,
+      "highestScore": "0",
+      "fifties": 0,
+      "hundreds": 0
+    },
+    "recentForm": []
+  },
+  "bowler": {
+    "name": "${bowler}",
+    "id": "bowl_live",
+    "imageUrl": null,
+    "country": "Country",
+    "role": "Bowler",
+    "t20Stats": {
+      "matches": 0,
+      "wickets": 0,
+      "economy": 0,
+      "average": 0,
+      "bestFigures": "0/0"
+    },
+    "recentForm": []
+  },
+  "headToHead": {
+    "dismissals": 0,
+    "totalEncounters": 0,
+    "batterStrikeRateVsBowler": 0,
+    "lastEncounterResult": "One sentence summary or no live H2H data found."
+  },
+  "venue": {
+    "name": "${venue}",
+    "city": "Overall T20 sample",
+    "avgT20Score": 170,
+    "spinAdvantage": false,
+    "dewFactor": true,
+    "pitchDescription": "Short venue or neutral-context note."
+  },
+  "phase2": {
+    "batterFormScore": 0,
+    "batterFormTrend": "consistent",
+    "bowlerThreatScore": 0,
+    "bowlerThreatTrend": "consistent",
+    "headToHead": {
+      "dominance": "contested",
+      "dominanceStrength": 50,
+      "summary": "Short matchup summary."
+    },
+    "venue": {
+      "venueAdjustment": 0,
+      "venueNote": "Short venue note."
+    },
+    "phaseAnalysis": {
+      "powerplayRisk": "medium",
+      "middleOversRisk": "medium",
+      "deathOversRisk": "medium",
+      "bestAttackWindow": "Overs 16-20"
+    },
+    "highlights": ["Point one", "Point two", "Point three"],
+    "overallRisk": "Contested",
+    "riskScore": 50,
+    "confidence": "medium"
+  },
+  "phase3": {
+    "badge": { "label": "CONTESTED", "color": "amber", "emoji": "●" },
+    "predictionText": "Plain English overview of the matchup.",
+    "attackWindow": "Overs 16-20",
+    "statCards": [
+      { "label": "BATTER STRIKE RATE", "value": "0", "subtext": "Career", "highlight": true },
+      { "label": "BOWLER ECONOMY", "value": "0", "subtext": "Career", "highlight": false },
+      { "label": "HEAD-TO-HEAD", "value": "0 encounters", "subtext": "Historical", "highlight": false },
+      { "label": "RISK SCORE", "value": "50", "subtext": "Out of 100", "highlight": false }
+    ],
+    "batterCard": { "name": "${batter}", "imageUrl": null, "role": "Batter", "formBadge": "🔥 In Form", "topStat": "SR: 0" },
+    "bowlerCard": { "name": "${bowler}", "imageUrl": null, "role": "Bowler", "formBadge": "⚡ Inconsistent", "topStat": "Eco: 0" },
+    "timeline": ["Data Fetched", "Stats Analyzed", "Venue Factored", "Verdict Generated"],
+    "shareText": "${batter} vs ${bowler} | FormGuide",
+    "generatedAt": "${new Date().toISOString()}"
+  },
+  "fetchedAt": "${new Date().toISOString()}"
+}`;
+
+  for (const model of models) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
+      });
+
+      return JSON.parse(cleanJsonResponse(response.text || ""));
+    } catch (error) {
+      lastError = error;
+      console.warn(`Gemini matchup request failed for ${model}: ${summarizeGeminiError(error)}`);
+    }
+  }
+
+  throw lastError;
 }
 
 export default async function handler(req: any, res: any) {
@@ -79,76 +158,32 @@ export default async function handler(req: any, res: any) {
   try {
     if (!ai) {
       sendEvent(res, "error", {
-        message: "GEMINI_API_KEY is missing. Live player stats cannot be fetched.",
+        message: "GEMINI_API_KEY is missing. Live matchup analysis cannot be fetched.",
       });
       res.end();
       return;
     }
 
-    const fallback = getSimulationData(batter, bowler, venue);
-    const finalData: any = {
-      isMock: false,
-      fetchedAt: new Date().toISOString(),
-    };
+    sendEvent(res, "step", { stepIndex: 0, status: "active", message: `Fetching matchup data for ${batter}` });
+    const data = await askMatchupJson(ai, batter, bowler, venue);
 
-    sendEvent(res, "step", { stepIndex: 0, status: "active", message: `Fetching T20/IPL stats for ${batter}` });
-    try {
-      finalData.batter = await askJson(ai, `Search current IPL/T20 stats and recent form for batter ${batter}. Use sourced/search result data only; do not invent, estimate, or reuse example values. Return ONLY JSON matching this shape:
-{"name":"${batter}","id":"bat_live","imageUrl":null,"country":"India/External","role":"Batter","t20Stats":{"matches":100,"innings":95,"runs":3000,"average":35,"strikeRate":140,"highestScore":"100*","fifties":20,"hundreds":2},"recentForm":[{"match":"Recent match","runs":40,"balls":25,"sr":160}]}`);
-    } catch (error) {
-      console.error("Batter lookup failed", error);
-      sendEvent(res, "error", { message: `Could not fetch live batting stats for ${batter}. ${summarizeGeminiError(error)}` });
-      res.end();
-      return;
-    }
-    sendEvent(res, "step", { stepIndex: 0, status: "done", message: `Processed stats for ${finalData.batter.name}` });
-
-    sendEvent(res, "step", { stepIndex: 1, status: "active", message: `Fetching T20/IPL stats for ${bowler}` });
-    try {
-      finalData.bowler = await askJson(ai, `Search current IPL/T20 stats and recent bowling form for bowler ${bowler}. Use sourced/search result data only; do not invent, estimate, or reuse example values. Return ONLY JSON matching this shape:
-{"name":"${bowler}","id":"bowl_live","imageUrl":null,"country":"India/External","role":"Bowler","t20Stats":{"matches":100,"wickets":120,"economy":7.2,"average":22,"bestFigures":"4/20"},"recentForm":[{"match":"Recent match","overs":4,"runs":28,"wickets":2,"economy":7}]}`);
-    } catch (error) {
-      console.error("Bowler lookup failed", error);
-      sendEvent(res, "error", { message: `Could not fetch live bowling stats for ${bowler}. ${summarizeGeminiError(error)}` });
-      res.end();
-      return;
-    }
-    sendEvent(res, "step", { stepIndex: 1, status: "done", message: `Processed stats for ${finalData.bowler.name}` });
-
-    sendEvent(res, "step", { stepIndex: 2, status: "active", message: `Analyzing ${batter} vs ${bowler}` });
-    try {
-      finalData.headToHead = await askJson(ai, `Find T20/IPL head-to-head matchup stats for ${batter} against ${bowler}. Use sourced/search result data only; do not invent or estimate. Return ONLY JSON:
-{"dismissals":2,"totalEncounters":8,"batterStrikeRateVsBowler":120,"lastEncounterResult":"One sentence recap"}`);
-    } catch (error) {
-      console.error("Head-to-head lookup failed", error);
-      finalData.headToHead = {
-        dismissals: 0,
-        totalEncounters: 0,
-        batterStrikeRateVsBowler: 0,
-        lastEncounterResult: "No live head-to-head data was returned by the stats API.",
-      };
-    }
+    sendEvent(res, "step", { stepIndex: 0, status: "done", message: `Processed batting profile for ${data.batter?.name || batter}` });
+    sendEvent(res, "step", { stepIndex: 1, status: "done", message: `Processed bowling profile for ${data.bowler?.name || bowler}` });
     sendEvent(res, "step", { stepIndex: 2, status: "done", message: "Head-to-head processed" });
-
-    sendEvent(res, "step", { stepIndex: 3, status: "active", message: `Reading pitch report for ${venue}` });
-    try {
-      finalData.venue = await askJson(ai, `Evaluate T20 pitch conditions at ${venue}. Return ONLY JSON:
-{"name":"${venue}","city":"City","avgT20Score":165,"spinAdvantage":true,"dewFactor":true,"pitchDescription":"Detailed pitch report"}`);
-    } catch (error) {
-      console.error("Venue lookup failed", error);
-      finalData.venue = fallback.venue;
-    }
-    sendEvent(res, "step", { stepIndex: 3, status: "done", message: "Venue processed" });
-
+    sendEvent(res, "step", { stepIndex: 3, status: "done", message: "Venue context processed" });
     sendEvent(res, "step", { stepIndex: 4, status: "done", message: "Matchup intelligence compiled" });
-    sendEvent(res, "step", { stepIndex: 5, status: "active", message: "Resolving CricketData profiles and faces" });
-    const enriched = await enrichMatchupPlayers(finalData);
     sendEvent(res, "step", { stepIndex: 5, status: "done", message: "Verdict compiled" });
-    sendEvent(res, "complete", enriched);
+    sendEvent(res, "complete", {
+      ...data,
+      isMock: false,
+      fetchedAt: data.fetchedAt || new Date().toISOString(),
+    });
     res.end();
   } catch (error) {
     console.error("Pipeline crashed", error);
-    sendEvent(res, "error", { message: "Failed to generate matchup report" });
+    sendEvent(res, "error", {
+      message: `Failed to generate matchup report before timeout. ${summarizeGeminiError(error)}`,
+    });
     res.end();
   }
 }
