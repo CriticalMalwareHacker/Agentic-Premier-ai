@@ -1,0 +1,101 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export type StepStatus = "pending" | "active" | "done";
+
+export interface BatterStats {
+  matches: number;
+  innings: number;
+  runs: number;
+  average: number;
+  strikeRate: number;
+  highestScore: string;
+  fifties: number;
+  hundreds: number;
+}
+
+export interface BatterRecentForm {
+  match: string;
+  runs: number;
+  balls: number;
+  sr: number;
+}
+
+export interface BatterInfo {
+  name: string;
+  id: string;
+  imageUrl: string | null;
+  country: string;
+  role: string;
+  t20Stats: BatterStats;
+  recentForm: BatterRecentForm[];
+}
+
+export interface BowlerStats {
+  matches: number;
+  wickets: number;
+  economy: number;
+  average: number;
+  bestFigures: string;
+}
+
+export interface BowlerRecentForm {
+  match: string;
+  overs: number;
+  runs: number;
+  wickets: number;
+  economy: number;
+}
+
+export interface BowlerInfo {
+  name: string;
+  id: string;
+  imageUrl: string | null;
+  country: string;
+  role: string;
+  t20Stats: BowlerStats;
+  recentForm: BowlerRecentForm[];
+}
+
+export interface H2HInfo {
+  dismissals: number;
+  totalEncounters: number;
+  batterStrikeRateVsBowler: number;
+  lastEncounterResult: string;
+}
+
+export interface VenueInfo {
+  name: string;
+  city: string;
+  avgT20Score: number;
+  spinAdvantage: boolean;
+  dewFactor: boolean;
+  pitchDescription: string;
+}
+
+export interface TacticalSimulationInfo {
+  winnerMatchupChance: number;
+  strategicKeyBatter: string;
+  strategicKeyBowler: string;
+  powerplayTactics: string;
+  deathOversTactics: string;
+  overallVerdict: string;
+}
+
+export interface MatchupAnalysis {
+  isMock: boolean;
+  batter: BatterInfo;
+  bowler: BowlerInfo;
+  headToHead: H2HInfo;
+  venue: VenueInfo;
+  tacticalSimulation: TacticalSimulationInfo;
+  fetchedAt: string;
+}
+
+export interface PipelineStepState {
+  label: string;
+  status: StepStatus;
+  message: string;
+}

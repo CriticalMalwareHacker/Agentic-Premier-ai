@@ -1,0 +1,6 @@
+{
+  "name": "Cricket Matchup FormGuide",
+  "description": "A multi-agent cricket matchup analyzer powered by Gemini Google Search Grounding to evaluate batter vs bowler matchups, pitch conditions, and recent form.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
