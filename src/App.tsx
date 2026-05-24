@@ -114,6 +114,7 @@ export default function App() {
   const [analyzing, setAnalyzing] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<MatchupAnalysis | null>(null);
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
   
   // API Backend Status
   const [apiConfig, setApiConfig] = useState<{
@@ -197,6 +198,7 @@ export default function App() {
     setAnalyzing(true);
     setProgressPercent(5);
     setAnalysisResult(null);
+    setPipelineError(null);
 
     // Initialise steps
     setSteps([
@@ -277,90 +279,21 @@ export default function App() {
 
     eventSource.addEventListener("error", (e: any) => {
       console.error("Stream error occurred", e);
-      addLog("[PIPELINE ERROR] Stream timed out or crashed. Injecting precise tactical approximation dataset.");
+      let message = "Live stats API failed. Check /api/analyze-stream and environment variables.";
+      if (e?.data) {
+        try {
+          message = JSON.parse(e.data).message || message;
+        } catch {
+          message = e.data;
+        }
+      }
+      addLog(`[PIPELINE ERROR] ${message}`);
+      setPipelineError(message);
       setAnalyzing(false);
       setProgressPercent(100);
       eventSource.close();
 
-      // Ensure stats render gracefully with local fallbacks instead of breaking the UI
       setSteps((prev) => prev.map(s => ({ ...s, status: "done" })));
-      // Use fallback locally computed mock to guarantee excellent user experience:
-      const fallbackData = {
-        isMock: true,
-        batter: {
-          name: batterName,
-          id: "bat_101",
-          imageUrl: null,
-          country: "India",
-          role: "Batter",
-          t20Stats: { matches: 218, innings: 205, runs: 6860, average: 34.2, strikeRate: 139.8, highestScore: "114*", fifties: 42, hundreds: 4 },
-          recentForm: [
-            { match: "Match A", runs: 42, balls: 28, sr: 150.0 },
-            { match: "Match B", runs: 12, balls: 14, sr: 85.7 },
-            { match: "Match C", runs: 88, balls: 51, sr: 172.5 },
-            { match: "Match D", runs: 31, balls: 22, sr: 140.9 }
-          ]
-        },
-        bowler: {
-          name: bowlerName,
-          id: "bowl_202",
-          imageUrl: null,
-          country: "India",
-          role: "Bowler",
-          t20Stats: { matches: 185, wickets: 210, economy: 7.42, average: 22.8, bestFigures: "4/15" },
-          recentForm: [
-            { match: "Match A", overs: 4, runs: 24, wickets: 2, economy: 6.0 },
-            { match: "Match B", overs: 4, runs: 35, wickets: 1, economy: 8.75 },
-            { match: "Match C", overs: 3, runs: 18, wickets: 3, economy: 6.0 },
-            { match: "Match D", overs: 4, runs: 28, wickets: 1, economy: 7.0 }
-          ]
-        },
-        headToHead: {
-          dismissals: 2,
-          totalEncounters: 7,
-          batterStrikeRateVsBowler: 124.5,
-          lastEncounterResult: `${bowlerName} limited ${batterName} to singles but conceded no boundaries.`
-        },
-        venue: {
-          name: venueName,
-          city: "Stadium venue",
-          avgT20Score: 168,
-          spinAdvantage: true,
-          dewFactor: true,
-          pitchDescription: `Local pitches at ${venueName} exhibit typical characteristics. Play favors precision placement over aggressive slogs due to slightly uneven bounce.`
-        },
-        phase2: {
-          batterFormScore: 82,
-          batterFormTrend: "rising",
-          bowlerThreatScore: 68,
-          bowlerThreatTrend: "consistent",
-          headToHead: {
-            dominance: "batter_dominant",
-            dominanceStrength: 75,
-            summary: "Batter aggressively scores when facing this bowler.",
-          },
-          venue: {
-            venueAdjustment: 15,
-            venueNote: "High runs expected early in the innings.",
-          },
-          phaseAnalysis: {
-            powerplayRisk: "medium",
-            middleOversRisk: "high",
-            deathOversRisk: "low",
-            bestAttackWindow: "Overs 7-12",
-          },
-          highlights: [
-            "Batter heavily attacks short pitch deliveries.",
-            "Bowler relies on slow cutters on this sticky wicket.",
-            "Spinners hold an extreme advantage in middle overs.",
-          ],
-          overallRisk: "Contested",
-          riskScore: 48,
-          confidence: "medium",
-        },
-        fetchedAt: new Date().toISOString()
-      };
-      setAnalysisResult(fallbackData);
     });
   };
 
@@ -567,6 +500,18 @@ export default function App() {
                   />
                 ))}
               </div>
+            </div>
+          )}
+
+          {pipelineError && !analyzing && (
+            <div className="bg-rose-950/20 border border-rose-500/30 rounded-xl p-5 space-y-2">
+              <div className="flex items-center gap-2 text-rose-300">
+                <AlertTriangle size={16} />
+                <span className="text-xs uppercase tracking-widest font-mono">Live Data Unavailable</span>
+              </div>
+              <p className="text-sm text-rose-100/80 leading-relaxed">
+                {pipelineError} No hardcoded batting or bowling stats are being displayed.
+              </p>
             </div>
           )}
 

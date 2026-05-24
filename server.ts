@@ -425,35 +425,9 @@ app.get("/api/analyze-stream", async (req, res) => {
   const ai = getGeminiClient();
 
   if (!ai) {
-    // Send standard simulated pipeline steps with delays
-    let simData = getSimulationData(batter, bowler, venue);
-
-    // Step 0: Batter recent form
-    sendEvent("step", { stepIndex: 0, status: "active", message: `Fetching recent form for ${batter}` });
-    await new Promise((r) => setTimeout(r, 1200));
-    sendEvent("step", { stepIndex: 0, status: "done", message: `Found ${simData.batter.t20Stats.runs} runs in T20 career for ${batter}`, partial: simData.batter });
-
-    // Step 1: Bowler economy
-    sendEvent("step", { stepIndex: 1, status: "active", message: `Fetching economy rate for ${bowler}` });
-    await new Promise((r) => setTimeout(r, 1200));
-    sendEvent("step", { stepIndex: 1, status: "done", message: `Found ${simData.bowler.t20Stats.wickets} wickets in T20 career for ${bowler}`, partial: simData.bowler });
-
-    // Step 2: Head-to-head matching
-    sendEvent("step", { stepIndex: 2, status: "active", message: `Analyzing ${batter} vs ${bowler} face-offs` });
-    await new Promise((r) => setTimeout(r, 1200));
-    sendEvent("step", { stepIndex: 2, status: "done", message: `Found ${simData.headToHead.dismissals} dismissals in matches`, partial: simData.headToHead });
-
-    // Step 3: Venue conditions
-    sendEvent("step", { stepIndex: 3, status: "active", message: `Reading pitch report at ${venue}` });
-    await new Promise((r) => setTimeout(r, 1200));
-    sendEvent("step", { stepIndex: 3, status: "done", message: `Avg Score: ${simData.venue.avgT20Score}`, partial: simData.venue });
-
-    sendEvent("step", { stepIndex: 4, status: "active", message: "Resolving player profile images" });
-    simData = await enrichMatchupPlayers(simData);
-    sendEvent("step", { stepIndex: 4, status: "done", message: "Player faces resolved where public portraits are available" });
-
-    // Stream the final outcome data
-    sendEvent("complete", simData);
+    sendEvent("error", {
+      message: "GEMINI_API_KEY is missing. Live player stats cannot be fetched.",
+    });
     res.end();
     return;
   }
@@ -491,7 +465,7 @@ Return a strict JSON block structure representing their information based on the
     { "match": "Most recent match name string", "runs": 45, "balls": 30, "sr": 150 }
   ]
 }
-If accurate career data is not found, provide highly realistic estimated statistics. Make sure to populate recentForm with 4-5 items.`,
+Use sourced/search result data only. Do not invent, estimate, or reuse example values. If recent form is unavailable, return an empty recentForm array.`,
         config: {
           tools: [{ googleSearch: {} }]
         }
@@ -502,9 +476,9 @@ If accurate career data is not found, provide highly realistic estimated statist
       sendEvent("step", { stepIndex: 0, status: "done", message: `Processed stats for ${finalData.batter.name} (${finalData.batter.t20Stats.runs} runs)`, partial: finalData.batter });
     } catch (e: any) {
       console.error("Step 0 failed", e);
-      // fallback
-      finalData.batter = getSimulationData(batter, bowler, venue).batter;
-      sendEvent("step", { stepIndex: 0, status: "done", message: `Defaulted statistics for ${batter}`, partial: finalData.batter });
+      sendEvent("error", { message: `Could not fetch live batting stats for ${batter}.` });
+      res.end();
+      return;
     }
 
     // Step 1: Bowler stats & economy via Gemini Search
@@ -531,7 +505,7 @@ Return a strict JSON block structure representing their information based on the
     { "match": "Most recent match name string", "overs": 4, "runs": 28, "wickets": 2, "economy": 7.0 }
   ]
 }
-If accurate career data is not found, provide highly realistic estimated statistics. Make sure to populate recentForm with 4-5 items.`,
+Use sourced/search result data only. Do not invent, estimate, or reuse example values. If recent form is unavailable, return an empty recentForm array.`,
         config: {
           tools: [{ googleSearch: {} }]
         }
@@ -542,8 +516,9 @@ If accurate career data is not found, provide highly realistic estimated statist
       sendEvent("step", { stepIndex: 1, status: "done", message: `Processed stats for ${finalData.bowler.name} (${finalData.bowler.t20Stats.wickets} wickets)`, partial: finalData.bowler });
     } catch (e: any) {
       console.error("Step 1 failed", e);
-      finalData.bowler = getSimulationData(batter, bowler, venue).bowler;
-      sendEvent("step", { stepIndex: 1, status: "done", message: `Defaulted statistics for ${bowler}`, partial: finalData.bowler });
+      sendEvent("error", { message: `Could not fetch live bowling stats for ${bowler}.` });
+      res.end();
+      return;
     }
 
     // Step 2: H2H head-to-head matchup
@@ -559,7 +534,7 @@ Return a strict JSON block structure. Return ONLY valid raw JSON with exact keys
   "batterStrikeRateVsBowler": 118.5,
   "lastEncounterResult": "Detailed single-sentence recap of their most recent head-to-head delivery or match event"
 }
-Provide highly realistic estimated data if direct numbers are hard to query.`,
+Use sourced/search result data only. Do not invent or estimate values. If direct numbers are unavailable, return zeros and explain that no live H2H record was found in lastEncounterResult.`,
         config: {
           tools: [{ googleSearch: {} }]
         }

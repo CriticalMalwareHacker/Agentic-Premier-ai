@@ -38,55 +38,55 @@ export default async function handler(req: any, res: any) {
 
   try {
     if (!ai) {
-      sendEvent(res, "step", { stepIndex: 0, status: "active", message: `Fetching recent form for ${batter}` });
-      const fallback = getSimulationData(batter, bowler, venue);
-      sendEvent(res, "step", { stepIndex: 0, status: "done", message: `Loaded fallback stats for ${batter}` });
-      sendEvent(res, "step", { stepIndex: 1, status: "done", message: `Loaded fallback stats for ${bowler}` });
-      sendEvent(res, "step", { stepIndex: 2, status: "done", message: "Loaded fallback head-to-head data" });
-      sendEvent(res, "step", { stepIndex: 3, status: "done", message: `Loaded pitch report for ${venue}` });
-      sendEvent(res, "step", { stepIndex: 4, status: "active", message: "Resolving player faces" });
-      const enriched = await enrichMatchupPlayers(fallback);
-      sendEvent(res, "step", { stepIndex: 4, status: "done", message: "Player faces resolved" });
-      sendEvent(res, "step", { stepIndex: 5, status: "done", message: "Verdict compiled" });
-      sendEvent(res, "complete", enriched);
+      sendEvent(res, "error", {
+        message: "GEMINI_API_KEY is missing. Live player stats cannot be fetched.",
+      });
       res.end();
       return;
     }
 
     const fallback = getSimulationData(batter, bowler, venue);
     const finalData: any = {
-      ...fallback,
       isMock: false,
       fetchedAt: new Date().toISOString(),
     };
 
     sendEvent(res, "step", { stepIndex: 0, status: "active", message: `Fetching T20/IPL stats for ${batter}` });
     try {
-      finalData.batter = await askJson(ai, `Search current IPL/T20 stats and recent form for batter ${batter}. Return ONLY JSON matching this shape:
+      finalData.batter = await askJson(ai, `Search current IPL/T20 stats and recent form for batter ${batter}. Use sourced/search result data only; do not invent, estimate, or reuse example values. Return ONLY JSON matching this shape:
 {"name":"${batter}","id":"bat_live","imageUrl":null,"country":"India/External","role":"Batter","t20Stats":{"matches":100,"innings":95,"runs":3000,"average":35,"strikeRate":140,"highestScore":"100*","fifties":20,"hundreds":2},"recentForm":[{"match":"Recent match","runs":40,"balls":25,"sr":160}]}`);
     } catch (error) {
       console.error("Batter lookup failed", error);
-      finalData.batter = fallback.batter;
+      sendEvent(res, "error", { message: `Could not fetch live batting stats for ${batter}.` });
+      res.end();
+      return;
     }
     sendEvent(res, "step", { stepIndex: 0, status: "done", message: `Processed stats for ${finalData.batter.name}` });
 
     sendEvent(res, "step", { stepIndex: 1, status: "active", message: `Fetching T20/IPL stats for ${bowler}` });
     try {
-      finalData.bowler = await askJson(ai, `Search current IPL/T20 stats and recent bowling form for bowler ${bowler}. Return ONLY JSON matching this shape:
+      finalData.bowler = await askJson(ai, `Search current IPL/T20 stats and recent bowling form for bowler ${bowler}. Use sourced/search result data only; do not invent, estimate, or reuse example values. Return ONLY JSON matching this shape:
 {"name":"${bowler}","id":"bowl_live","imageUrl":null,"country":"India/External","role":"Bowler","t20Stats":{"matches":100,"wickets":120,"economy":7.2,"average":22,"bestFigures":"4/20"},"recentForm":[{"match":"Recent match","overs":4,"runs":28,"wickets":2,"economy":7}]}`);
     } catch (error) {
       console.error("Bowler lookup failed", error);
-      finalData.bowler = fallback.bowler;
+      sendEvent(res, "error", { message: `Could not fetch live bowling stats for ${bowler}.` });
+      res.end();
+      return;
     }
     sendEvent(res, "step", { stepIndex: 1, status: "done", message: `Processed stats for ${finalData.bowler.name}` });
 
     sendEvent(res, "step", { stepIndex: 2, status: "active", message: `Analyzing ${batter} vs ${bowler}` });
     try {
-      finalData.headToHead = await askJson(ai, `Find T20/IPL head-to-head matchup stats for ${batter} against ${bowler}. Return ONLY JSON:
+      finalData.headToHead = await askJson(ai, `Find T20/IPL head-to-head matchup stats for ${batter} against ${bowler}. Use sourced/search result data only; do not invent or estimate. Return ONLY JSON:
 {"dismissals":2,"totalEncounters":8,"batterStrikeRateVsBowler":120,"lastEncounterResult":"One sentence recap"}`);
     } catch (error) {
       console.error("Head-to-head lookup failed", error);
-      finalData.headToHead = fallback.headToHead;
+      finalData.headToHead = {
+        dismissals: 0,
+        totalEncounters: 0,
+        batterStrikeRateVsBowler: 0,
+        lastEncounterResult: "No live head-to-head data was returned by the stats API.",
+      };
     }
     sendEvent(res, "step", { stepIndex: 2, status: "done", message: "Head-to-head processed" });
 
