@@ -11,9 +11,11 @@ dotenv.config({ path: ".env.local" });
 const app = express();
 app.use(express.json());
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 const CRICKETDATA_KEY_NAMES = ["CRICKETDATA_API_KEY", "CRICAPI_KEY", "CRICAPI_API_KEY"];
+const isProductionServer =
+  process.env.NODE_ENV === "production" || path.basename(process.argv[1] || "") === "server.cjs";
 
 type PlayerProfile = {
   id?: string;
@@ -734,7 +736,7 @@ generatedAt`,
 
 // Vite & Static Asset Setup
 const startServer = async () => {
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProductionServer) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

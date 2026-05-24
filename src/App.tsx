@@ -39,6 +39,9 @@ const MATCHUP_PRESETS = [
   { batter: "Jos Buttler", bowler: "Mitchell Starc", venue: "Wankhede Stadium, Mumbai" },
 ];
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
+const apiPath = (path: string) => `${API_BASE_URL}${path}`;
+
 export default function App() {
   // Analytical Input States
   const [batterName, setBatterName] = useState("Virat Kohli");
@@ -83,7 +86,7 @@ export default function App() {
 
   // Sync server API configuration on mount
   useEffect(() => {
-    fetch("/api/config-check")
+    fetch(apiPath("/api/config-check"))
       .then((res) => res.json())
       .then((data) => {
         setApiConfig(data);
@@ -144,7 +147,7 @@ export default function App() {
       { label: "Compiling Verdict & UI (Phase 3)", status: "pending", message: "" },
     ]);
 
-    const url = `/api/analyze-stream?batter=${encodeURIComponent(batterName)}&bowler=${encodeURIComponent(bowlerName)}&venue=${encodeURIComponent(venueName)}`;
+    const url = apiPath(`/api/analyze-stream?batter=${encodeURIComponent(batterName)}&bowler=${encodeURIComponent(bowlerName)}&venue=${encodeURIComponent(venueName)}`);
     const eventSource = new EventSource(url);
 
     eventSource.addEventListener("step", (e: any) => {

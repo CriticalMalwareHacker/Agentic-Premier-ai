@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/analyze-stream.ts": {
+      "maxDuration": 10
+    },
+    "api/player-profile.ts": {
+      "maxDuration": 10
+    }
+  }
+}

@@ -18,3 +18,6 @@ View your app in AI Studio: https://ai.studio/apps/282680d4-c48a-4646-8dbe-7d97e
 2. Set `GEMINI_API_KEY` and `CRICAPI_KEY` in [.env](.env)
 3. Run the app:
    `npm run dev`
+
+Open the app from the Express/Vite server URL, normally `http://localhost:3000`.
+Do not open `dist/index.html` directly; the frontend needs the `/api/*` routes from `server.ts`.
