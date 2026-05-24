@@ -1,6 +1,7 @@
 import {
   cleanJsonResponse,
   getGeminiClient,
+  getLatestCricketDataInstruction,
   getGeminiModelCandidates,
 } from "./_shared.js";
 
@@ -26,7 +27,9 @@ async function askMatchupJson(ai: any, batter: string, bowler: string, venue: st
   const prompt = `Return ONLY valid raw JSON for this cricket matchup: ${batter} vs ${bowler}.
 Venue context: ${venue}.
 
-Use known cricket records and recent publicly available T20/IPL context. Do not include markdown.
+${getLatestCricketDataInstruction()}
+
+Use known cricket records and latest publicly available T20/IPL context. Do not include markdown.
 If exact recent-form scorecards are not confidently available, return an empty recentForm array instead of inventing match scores.
 
 Required JSON shape:

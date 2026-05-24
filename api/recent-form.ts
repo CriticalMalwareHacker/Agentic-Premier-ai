@@ -1,6 +1,7 @@
 import {
   cleanJsonResponse,
   getGeminiClient,
+  getLatestCricketDataInstruction,
   getGeminiModelCandidates,
 } from "./_shared.js";
 
@@ -19,10 +20,12 @@ async function askRecentFormJson(ai: any, batter: string, bowler: string) {
   const models = getGeminiModelCandidates().slice(0, 2);
   const prompt = `Return ONLY valid raw JSON for recent T20/IPL form.
 
+${getLatestCricketDataInstruction()}
+
 Batter: ${batter}
 Bowler: ${bowler}
 
-Use public/searchable cricket records only. Do not invent match names or scorecards.
+Use public/searchable cricket records only. Search for the latest completed matches first. Do not invent match names or scorecards.
 If exact recent innings or spells are not confidently available, return an empty array for that player.
 
 Required JSON shape:
@@ -54,7 +57,7 @@ Required JSON shape:
       { "match": "Team A vs Team B, competition/date if known", "overs": 0, "runs": 0, "wickets": 0, "economy": 0 }
     ]
   },
-  "sourceNote": "Short note on what data was found."
+  "sourceNote": "Short note naming the season/date range used, for example IPL 2026 through May 2026."
 }`;
 
   for (const model of models) {

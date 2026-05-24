@@ -85,6 +85,12 @@ export function cleanJsonResponse(raw: string) {
   return cleaned.trim();
 }
 
+export function getLatestCricketDataInstruction() {
+  const today = new Date().toISOString().slice(0, 10);
+
+  return `Today is ${today}. Fetch the latest available completed cricket data on or before today. Prioritize IPL 2026, T20 internationals in 2026, and other 2026 T20 competitions before considering 2025 or 2024. Do not return 2024 data if newer public data exists. If only older data is available, clearly state that in sourceNote or the relevant summary.`;
+}
+
 async function fetchJson<T>(url: string, timeoutMs = 8000): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);

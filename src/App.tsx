@@ -105,11 +105,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || ""
 const apiPath = (path: string) => `${API_BASE_URL}${path}`;
 
 const PIPELINE_STEPS = [
-  "Fetching matchup overview",
+  "Fetching latest matchup overview",
   "Resolving core stat profile",
   "Analyzing head-to-head history",
   "Reading pitch & venue context",
-  "Fetching recent innings form",
+  "Fetching latest innings form",
   "Fetching player images",
   "Running Matchup Intelligence",
   "Compiling Verdict & UI",
@@ -265,15 +265,15 @@ export default function App() {
     const recentUrl = apiPath(`/api/recent-form?batter=${encodeURIComponent(batterName)}&bowler=${encodeURIComponent(bowlerName)}`);
     const imagesUrl = apiPath(`/api/player-images?batter=${encodeURIComponent(batterName)}&bowler=${encodeURIComponent(bowlerName)}`);
 
-    patchStep(4, "active", "Recent Form Agent fetching innings and bowling spells...");
+    patchStep(4, "active", "Recent Form Agent fetching latest innings and bowling spells...");
     setProgressPercent(70);
     try {
       const response = await fetch(recentUrl);
       if (!response.ok) throw new Error(`Recent Form Agent returned ${response.status}`);
       const formData = await response.json();
       mergeRecentForm(formData);
-      patchStep(4, "done", "Recent form updated from live lookup");
-      if (!silent) addLog("[RECENT FORM AGENT] Updated innings and bowling spells.");
+      patchStep(4, "done", "Latest recent form updated from live lookup");
+      if (!silent) addLog(`[RECENT FORM AGENT] Updated latest innings and bowling spells.${formData?.sourceNote ? ` ${formData.sourceNote}` : ""}`);
     } catch (error: any) {
       patchStep(4, "done", "Recent form unavailable; keeping main analysis values");
       if (!silent) addLog(`[RECENT FORM AGENT] ${error?.message || "Recent form lookup failed."}`);
@@ -814,7 +814,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <h5 className="text-[10px] text-white/30 uppercase tracking-wider font-mono font-medium">Last 5 T20 Matches:</h5>
+                    <h5 className="text-[10px] text-white/30 uppercase tracking-wider font-mono font-medium">Latest T20 Matches:</h5>
                     <div className="space-y-2">
                       {data.batter.recentForm && data.batter.recentForm.length > 0 ? (
                         data.batter.recentForm.map((item, idx) => (
@@ -830,7 +830,7 @@ export default function App() {
                           </div>
                         ))
                       ) : (
-                        <p className="text-xs text-slate-500 italic">No recent match form parsed.</p>
+                        <p className="text-xs text-slate-500 italic">No latest match form returned by the Recent Form Agent.</p>
                       )}
                     </div>
                   </div>
@@ -855,7 +855,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <h5 className="text-[10px] text-white/30 uppercase tracking-wider font-mono font-medium">Last 5 T20 Bowling Spells:</h5>
+                    <h5 className="text-[10px] text-white/30 uppercase tracking-wider font-mono font-medium">Latest T20 Bowling Spells:</h5>
                     <div className="space-y-2">
                       {data.bowler.recentForm && data.bowler.recentForm.length > 0 ? (
                         data.bowler.recentForm.map((item, idx) => (
@@ -868,7 +868,7 @@ export default function App() {
                           </div>
                         ))
                       ) : (
-                        <p className="text-xs text-slate-500 italic">No recent spells parsed.</p>
+                        <p className="text-xs text-slate-500 italic">No latest bowling spells returned by the Recent Form Agent.</p>
                       )}
                     </div>
                   </div>
