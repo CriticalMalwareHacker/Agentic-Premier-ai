@@ -51,8 +51,15 @@ export default function App() {
   const [analysisResult, setAnalysisResult] = useState<MatchupAnalysis | null>(null);
   
   // API Backend Status
-  const [apiConfig, setApiConfig] = useState<{ geminiApiKeyPresent: boolean; warn: string | null }>({
+  const [apiConfig, setApiConfig] = useState<{
+    geminiApiKeyPresent: boolean;
+    cricapiKeyPresent: boolean;
+    portraitLookupAvailable: boolean;
+    warn: string | null;
+  }>({
     geminiApiKeyPresent: false,
+    cricapiKeyPresent: false,
+    portraitLookupAvailable: false,
     warn: null
   });
 
@@ -83,7 +90,7 @@ export default function App() {
         if (data.warn) {
           addLog(`[SYSTEM WARN] ${data.warn}`);
         } else {
-          addLog("[SYSTEM INFO] Secure Gemini 3.5 API key detected. Live Search Grounding active.");
+          addLog("[SYSTEM INFO] Gemini and CricketData API keys detected. Live profile enrichment active.");
         }
       })
       .catch((err) => {
@@ -129,7 +136,7 @@ export default function App() {
 
     // Initialise steps
     setSteps([
-      { label: "Fetching batter recent form", status: "active", message: `Connecting to CricketData API search...` },
+      { label: "Fetching batter recent form", status: "active", message: `Connecting to cricket stats and profile APIs...` },
       { label: "Fetching bowler recent economy", status: "pending", message: "" },
       { label: "Analyzing head-to-head history", status: "pending", message: "" },
       { label: "Reading pitch & venue conditions", status: "pending", message: "" },
@@ -369,11 +376,15 @@ export default function App() {
               <div className="space-y-2 bg-[#0E0E10] border border-white/5 rounded p-3 text-xs font-mono text-white/70">
                 <div className="flex justify-between">
                   <span className="text-white/30">Cric API:</span>
-                  <span className="text-emerald-400">Connected</span>
+                  <span className={apiConfig.cricapiKeyPresent ? "text-emerald-400" : "text-amber-400"}>
+                    {apiConfig.cricapiKeyPresent ? "Connected" : "Fallback"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-white/30">Intelligence:</span>
-                  <span>Gemini-3.5</span>
+                  <span className="text-white/30">Faces:</span>
+                  <span className={apiConfig.portraitLookupAvailable ? "text-emerald-400" : "text-amber-400"}>
+                    {apiConfig.portraitLookupAvailable ? "Enabled" : "Fallback"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-white/30">Latency Check:</span>
